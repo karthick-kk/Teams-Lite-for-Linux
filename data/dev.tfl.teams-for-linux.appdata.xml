@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.tfl.teams-for-linux</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Teams for Linux</name>
+  <summary>Unofficial Microsoft Teams client for Linux</summary>
+  <description>
+    <p>
+      A native Microsoft Teams client for Linux built with CEF (Chromium Embedded Framework).
+      Features native Wayland support, HiDPI scaling, system tray integration,
+      and cookie-based session persistence.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/karthick-kk/tfl</url>
+  <url type="bugtracker">https://github.com/karthick-kk/tfl/issues</url>
+  <launchable type="desktop-id">tfl.desktop</launchable>
+  <provides>
+    <binary>tfl</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-03-13">
+      <description>
+        <p>Initial release with native Wayland, HiDPI, OAuth login, system tray, and screen sharing.</p>
+      </description>
+    </release>
+  </releases>
+</component>

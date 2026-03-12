@@ -1,0 +1,198 @@
+#include "client.h"
+#include "tray.h"
+#include "idle.h"
+#include "include/cef_app.h"
+#include "include/views/cef_browser_view.h"
+#include <cstdio>
+#include <cstdlib>
+
+static bool is_teams_domain(const std::string& url) {
+    return url.find("teams.cloud.microsoft") != std::string::npos ||
+           url.find("teams.microsoft.com") != std::string::npos ||
+           url.find("teams.live.com") != std::string::npos ||
+           url.find("login.microsoftonline.com") != std::string::npos ||
+           url.find("login.live.com") != std::string::npos ||
+           url.find("login.microsoft.com") != std::string::npos ||
+           url.find("microsoft.com/devicelogin") != std::string::npos ||
+           url.find("aadcdn.msftauth.net") != std::string::npos ||
+           url.find("aadcdn.msauth.net") != std::string::npos;
+}
+
+TflClient::TflClient(const TflConfig& config) : config_(config) {}
+
+// --- LifeSpan ---
+
+void TflClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
+    browsers_.push_back(browser);
+    fprintf(stderr, "[tfl] Browser created (total: %zu)\n", browsers_.size());
+}
+
+bool TflClient::DoClose(CefRefPtr<CefBrowser> browser) {
+    if (browsers_.size() == 1) {
+        is_closing_ = true;
+    }
+    return false;  // allow default close
+}
+
+void TflClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
+    for (auto it = browsers_.begin(); it != browsers_.end(); ++it) {
+        if ((*it)->IsSame(browser)) {
+            browsers_.erase(it);
+            break;
+        }
+    }
+    if (browsers_.empty()) {
+        CefQuitMessageLoop();
+    }
+}
+
+bool TflClient::OnBeforePopup(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    int popup_id,
+    const CefString& target_url,
+    const CefString& target_frame_name,
+    CefLifeSpanHandler::WindowOpenDisposition target_disposition,
+    bool user_gesture,
+    const CefPopupFeatures& popupFeatures,
+    CefWindowInfo& windowInfo,
+    CefRefPtr<CefClient>& client,
+    CefBrowserSettings& settings,
+    CefRefPtr<CefDictionaryValue>& extra_info,
+    bool* no_javascript_access) {
+
+    // Load popups in the main browser instead of opening new windows
+    // Exception: allow OAuth popups that need separate windows
+    std::string url = target_url.ToString();
+    if (is_teams_domain(url)) {
+        // Allow auth/Teams popups
+        return false;
+    }
+
+    // Open external links in default browser
+    std::string cmd = "xdg-open '" + url + "' &";
+    system(cmd.c_str());
+    return true;  // cancel popup
+}
+
+// --- Load ---
+
+void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
+                           CefRefPtr<CefFrame> frame,
+                           int httpStatusCode) {
+    if (!frame->IsMain()) return;
+
+    std::string url = frame->GetURL().ToString();
+    if (!is_teams_domain(url)) return;
+
+    // Inject visibility override to prevent "Away" status when window is unfocused
+    frame->ExecuteJavaScript(idle_get_visibility_override_js(), url, 0);
+}
+
+// --- Display ---
+
+void TflClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) {
+    std::string t = title.ToString();
+
+    // Parse badge count from title — Teams uses "(N) Microsoft Teams"
+    int badge = 0;
+    if (t.size() > 2 && t[0] == '(') {
+        auto close = t.find(')');
+        if (close != std::string::npos && close > 1) {
+            std::string num = t.substr(1, close - 1);
+            try { badge = std::stoi(num); } catch (...) {}
+        }
+    }
+
+    // Update tray tooltip with badge info
+    std::string tooltip = "Teams for Linux";
+    if (badge > 0) {
+        tooltip += " (" + std::to_string(badge) + " unread)";
+    }
+    tray_set_tooltip(tooltip);
+
+    // Set window title for GNOME titlebar
+    auto views = CefBrowserView::GetForBrowser(browser);
+    if (views) {
+        auto window = views->GetWindow();
+        if (window) {
+            window->SetTitle(title);
+        }
+    }
+}
+
+// --- Request ---
+
+bool TflClient::OnCertificateError(
+    CefRefPtr<CefBrowser> browser,
+    cef_errorcode_t cert_error,
+    const CefString& request_url,
+    CefRefPtr<CefSSLInfo> ssl_info,
+    CefRefPtr<CefCallback> callback) {
+    // Reject invalid certs by default
+    fprintf(stderr, "[tfl] Certificate error for %s (code %d)\n",
+            request_url.ToString().c_str(), cert_error);
+    return false;
+}
+
+// --- Permission ---
+
+bool TflClient::OnRequestMediaAccessPermission(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    const CefString& requesting_url,
+    uint32_t requested_permissions,
+    CefRefPtr<CefMediaAccessCallback> callback) {
+    // Grant all media permissions for Teams (camera, mic, screen share)
+    std::string url = requesting_url.ToString();
+    if (url.find("teams.cloud.microsoft") != std::string::npos ||
+        url.find("teams.microsoft.com") != std::string::npos ||
+        url.find("teams.live.com") != std::string::npos) {
+        callback->Continue(requested_permissions);
+        return true;
+    }
+    return false;  // deny for other origins
+}
+
+// --- Keyboard ---
+
+bool TflClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
+                               const CefKeyEvent& event,
+                               CefEventHandle os_event,
+                               bool* is_keyboard_shortcut) {
+    if (event.type != KEYEVENT_RAWKEYDOWN) return false;
+
+    // F5 — reload
+    if (event.windows_key_code == 0x74) {
+        browser->Reload();
+        return true;
+    }
+
+    // F12 — toggle devtools
+    if (event.windows_key_code == 0x7B && config_.enable_dev_tools) {
+        if (browser->GetHost()->HasDevTools()) {
+            browser->GetHost()->CloseDevTools();
+        } else {
+            CefWindowInfo devtools_info;
+            CefBrowserSettings devtools_settings;
+            browser->GetHost()->ShowDevTools(devtools_info, nullptr, devtools_settings, CefPoint());
+        }
+        return true;
+    }
+
+    // Ctrl+R — reload
+    if (event.windows_key_code == 'R' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) {
+        browser->Reload();
+        return true;
+    }
+
+    // Ctrl+Shift+R — reload ignoring cache
+    if (event.windows_key_code == 'R' &&
+        (event.modifiers & EVENTFLAG_CONTROL_DOWN) &&
+        (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
+        browser->ReloadIgnoreCache();
+        return true;
+    }
+
+    return false;
+}
