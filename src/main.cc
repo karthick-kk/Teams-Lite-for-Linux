@@ -1,0 +1,91 @@
+#include "app.h"
+#include "client.h"
+#include "window.h"
+#include "config.h"
+#include "notifications.h"
+#include "include/cef_app.h"
+#include "include/cef_browser.h"
+#include "include/cef_command_line.h"
+#include "include/views/cef_browser_view.h"
+#include "include/views/cef_window.h"
+#include <cstdio>
+#include <filesystem>
+#include <unistd.h>
+
+namespace fs = std::filesystem;
+
+int main(int argc, char* argv[]) {
+    CefMainArgs main_args(argc, argv);
+
+    // Subprocesses don't need full config — just enough for CefExecuteProcess
+    TflConfig config;
+    CefRefPtr<TflApp> app(new TflApp(config));
+
+    int exit_code = CefExecuteProcess(main_args, app, nullptr);
+    if (exit_code >= 0) {
+        return exit_code;
+    }
+
+    // --- Main browser process: load full config ---
+    config = load_config();
+
+    fprintf(stderr, "[tfl] Starting Teams for Linux (CEF)\n");
+
+    CefSettings settings;
+    settings.no_sandbox = true;
+    settings.multi_threaded_message_loop = false;
+    settings.windowless_rendering_enabled = false;
+
+    CefString(&settings.root_cache_path) = config.cache_dir;
+    CefString(&settings.cache_path) = config.cache_dir + "/Default";
+    CefString(&settings.locale) = "en-US";
+    CefString(&settings.accept_language_list) = "en-US,en";
+    CefString(&settings.log_file) = config.cache_dir + "/cef.log";
+    settings.log_severity = LOGSEVERITY_WARNING;
+    CefString(&settings.user_agent) = config.user_agent;
+
+    char exe_path[4096];
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    std::string exe_dir;
+    if (len > 0) {
+        exe_path[len] = '\0';
+        CefString(&settings.browser_subprocess_path) = exe_path;
+        exe_dir = fs::path(exe_path).parent_path().string();
+    }
+
+    if (!exe_dir.empty()) {
+        CefString(&settings.resources_dir_path) = exe_dir;
+        CefString(&settings.locales_dir_path) = exe_dir + "/locales";
+    }
+
+    if (!CefInitialize(main_args, settings, app, nullptr)) {
+        fprintf(stderr, "[tfl] CefInitialize failed\n");
+        return 1;
+    }
+
+    fprintf(stderr, "[tfl] CEF initialized, cache: %s\n", config.cache_dir.c_str());
+
+    notifications_init();
+
+    // Create browser using Views framework (no browser chrome — clean app window)
+    CefRefPtr<TflClient> client(new TflClient(config));
+
+    CefBrowserSettings browser_settings;
+    browser_settings.javascript_access_clipboard = STATE_ENABLED;
+    browser_settings.local_storage = STATE_ENABLED;
+
+    CefRefPtr<TflBrowserViewDelegate> bv_delegate(new TflBrowserViewDelegate(config));
+    CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
+        client, config.url, browser_settings, nullptr, nullptr, bv_delegate);
+
+    CefWindow::CreateTopLevelWindow(
+        new TflWindowDelegate(browser_view, config));
+
+    fprintf(stderr, "[tfl] Browser loading: %s\n", config.url.c_str());
+
+    CefRunMessageLoop();
+    notifications_shutdown();
+    CefShutdown();
+    fprintf(stderr, "[tfl] Shutdown complete\n");
+    return 0;
+}
