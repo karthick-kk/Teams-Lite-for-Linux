@@ -10,8 +10,9 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitchWithValue("ozone-platform", "wayland");
     command_line->AppendSwitch("enable-wayland-ime");
 
-    // HiDPI — let CEF auto-detect scale factor
-    command_line->AppendSwitch("enable-features=UseOzonePlatform,WaylandWindowDecorations");
+    // HiDPI + spellcheck features
+    command_line->AppendSwitchWithValue("enable-features",
+        "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual");
 
     // GPU acceleration
     command_line->AppendSwitch("enable-gpu");
@@ -26,4 +27,7 @@ void TflApp::OnBeforeCommandLineProcessing(
     // Enable screen sharing
     command_line->AppendSwitch("enable-usermedia-screen-capturing");
     command_line->AppendSwitchWithValue("auto-select-desktop-capture-source", "Entire screen");
+
+    // Spellcheck
+    command_line->AppendSwitch("enable-spelling-auto-correct");
 }
