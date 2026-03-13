@@ -1,0 +1,256 @@
+name: Build Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CEF_DIR: /tmp/cef
+  APP_VERSION: "0.1.0"
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config \
+            libgtk-3-dev libayatana-appindicator3-dev libnotify-dev \
+            libnss3-dev libasound2-dev libcups2-dev libxcomposite-dev \
+            libxdamage-dev libxrandr-dev libatk-bridge2.0-dev \
+            curl dpkg-dev patchelf
+
+      - name: Download CEF
+        run: bash packaging/download-cef.sh ${{ env.CEF_DIR }}
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=${{ env.CEF_DIR }}
+          make -j$(nproc)
+          # Fix RPATH for packaging — point to same directory
+          patchelf --set-rpath '$ORIGIN' tfl
+
+      - name: Package .deb
+        run: |
+          PKG=tfl_${APP_VERSION}_amd64
+          mkdir -p pkg/${PKG}/DEBIAN
+          mkdir -p pkg/${PKG}/usr/lib/tfl
+          mkdir -p pkg/${PKG}/usr/bin
+          mkdir -p pkg/${PKG}/usr/share/applications
+          mkdir -p pkg/${PKG}/usr/share/metainfo
+
+          cp build/tfl pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libcef.so pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libEGL.so pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libGLESv2.so pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libvk_swiftshader.so pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libvulkan.so.1 pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/v8_context_snapshot.bin pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/vk_swiftshader_icd.json pkg/${PKG}/usr/lib/tfl/
+
+          cp ${{ env.CEF_DIR }}/Resources/icudtl.dat pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/chrome_100_percent.pak pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/chrome_200_percent.pak pkg/${PKG}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/resources.pak pkg/${PKG}/usr/lib/tfl/
+          cp -r ${{ env.CEF_DIR }}/Resources/locales pkg/${PKG}/usr/lib/tfl/
+
+          printf '#!/bin/sh\nexec /usr/lib/tfl/tfl "$@"\n' > pkg/${PKG}/usr/bin/tfl
+          chmod +x pkg/${PKG}/usr/bin/tfl
+
+          cp data/tfl.desktop pkg/${PKG}/usr/share/applications/
+          cp data/dev.tfl.teams-for-linux.appdata.xml pkg/${PKG}/usr/share/metainfo/
+
+          cat > pkg/${PKG}/DEBIAN/control << 'EOF'
+          Package: tfl
+          Version: VERSION_PLACEHOLDER
+          Section: net
+          Priority: optional
+          Architecture: amd64
+          Depends: libgtk-3-0, libayatana-appindicator3-1, libnotify4, libnss3, libatk-bridge2.0-0, libcups2, libxcomposite1, libxdamage1, libxrandr2, libasound2
+          Maintainer: tfl <tfl@dev.tfl>
+          Description: Unofficial Microsoft Teams client for Linux
+           Native C++/CEF Teams client with Wayland support, HiDPI scaling,
+           system tray, and screen sharing.
+          EOF
+          sed -i 's/^          //' pkg/${PKG}/DEBIAN/control
+          sed -i "s/VERSION_PLACEHOLDER/${APP_VERSION}/" pkg/${PKG}/DEBIAN/control
+
+          dpkg-deb --build pkg/${PKG}
+          mv pkg/${PKG}.deb build/tfl_${APP_VERSION}_amd64.deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfl-deb
+          path: build/tfl_*.deb
+
+  build-rpm:
+    runs-on: ubuntu-24.04
+    container: fedora:41
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dnf install -y gcc-c++ cmake pkg-config make curl tar bzip2 patchelf \
+            gtk3-devel libayatana-appindicator-gtk3-devel libnotify-devel \
+            nss-devel alsa-lib-devel cups-devel atk-devel at-spi2-atk-devel \
+            libXcomposite-devel libXdamage-devel libXrandr-devel \
+            rpm-build
+
+      - name: Download CEF
+        run: bash packaging/download-cef.sh ${{ env.CEF_DIR }}
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=${{ env.CEF_DIR }}
+          make -j$(nproc)
+          patchelf --set-rpath '$ORIGIN' tfl
+
+      - name: Package .rpm
+        run: |
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          DESTDIR=$(mktemp -d)
+
+          mkdir -p ${DESTDIR}/usr/lib/tfl
+          mkdir -p ${DESTDIR}/usr/bin
+          mkdir -p ${DESTDIR}/usr/share/applications
+          mkdir -p ${DESTDIR}/usr/share/metainfo
+
+          cp build/tfl ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libcef.so ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libEGL.so ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libGLESv2.so ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libvk_swiftshader.so ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libvulkan.so.1 ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/v8_context_snapshot.bin ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/vk_swiftshader_icd.json ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/icudtl.dat ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/chrome_100_percent.pak ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/chrome_200_percent.pak ${DESTDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/resources.pak ${DESTDIR}/usr/lib/tfl/
+          cp -r ${{ env.CEF_DIR }}/Resources/locales ${DESTDIR}/usr/lib/tfl/
+
+          printf '#!/bin/sh\nexec /usr/lib/tfl/tfl "$@"\n' > ${DESTDIR}/usr/bin/tfl
+          chmod +x ${DESTDIR}/usr/bin/tfl
+
+          cp data/tfl.desktop ${DESTDIR}/usr/share/applications/
+          cp data/dev.tfl.teams-for-linux.appdata.xml ${DESTDIR}/usr/share/metainfo/
+
+          cat > ~/rpmbuild/SPECS/tfl.spec << SPEC
+          Name:           tfl
+          Version:        ${APP_VERSION}
+          Release:        1%{?dist}
+          Summary:        Unofficial Microsoft Teams client for Linux
+          License:        MIT
+          URL:            https://github.com/karthick-kk/tfl
+
+          AutoReqProv:    no
+          Requires:       gtk3, libnotify, nss, at-spi2-atk, cups-libs, libXcomposite, libXdamage, libXrandr, alsa-lib
+
+          %description
+          Native C++/CEF Teams client with Wayland support, HiDPI scaling,
+          system tray, and screen sharing.
+
+          %install
+          cp -a ${DESTDIR}/* %{buildroot}/
+
+          %files
+          /usr/lib/tfl/
+          /usr/bin/tfl
+          /usr/share/applications/tfl.desktop
+          /usr/share/metainfo/dev.tfl.teams-for-linux.appdata.xml
+          SPEC
+          sed -i 's/^          //' ~/rpmbuild/SPECS/tfl.spec
+
+          QA_RPATHS=0x0002 rpmbuild -bb ~/rpmbuild/SPECS/tfl.spec
+          cp ~/rpmbuild/RPMS/x86_64/tfl-*.rpm build/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfl-rpm
+          path: build/tfl-*.rpm
+
+  build-arch:
+    runs-on: ubuntu-24.04
+    container: archlinux:base-devel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm cmake pkg-config gtk3 libayatana-appindicator \
+            libnotify nss alsa-lib curl tar patchelf fakeroot zstd
+
+      - name: Download CEF
+        run: bash packaging/download-cef.sh ${{ env.CEF_DIR }}
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=${{ env.CEF_DIR }}
+          make -j$(nproc)
+          patchelf --set-rpath '$ORIGIN' tfl
+
+      - name: Package .pkg.tar.zst
+        run: |
+          PKGDIR=$(mktemp -d)
+          mkdir -p ${PKGDIR}/usr/lib/tfl
+          mkdir -p ${PKGDIR}/usr/bin
+          mkdir -p ${PKGDIR}/usr/share/applications
+          mkdir -p ${PKGDIR}/usr/share/metainfo
+
+          cp build/tfl ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libcef.so ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libEGL.so ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libGLESv2.so ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libvk_swiftshader.so ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/libvulkan.so.1 ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/v8_context_snapshot.bin ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Release/vk_swiftshader_icd.json ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/icudtl.dat ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/chrome_100_percent.pak ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/chrome_200_percent.pak ${PKGDIR}/usr/lib/tfl/
+          cp ${{ env.CEF_DIR }}/Resources/resources.pak ${PKGDIR}/usr/lib/tfl/
+          cp -r ${{ env.CEF_DIR }}/Resources/locales ${PKGDIR}/usr/lib/tfl/
+
+          printf '#!/bin/sh\nexec /usr/lib/tfl/tfl "$@"\n' > ${PKGDIR}/usr/bin/tfl
+          chmod +x ${PKGDIR}/usr/bin/tfl
+
+          cp data/tfl.desktop ${PKGDIR}/usr/share/applications/
+          cp data/dev.tfl.teams-for-linux.appdata.xml ${PKGDIR}/usr/share/metainfo/
+
+          PKG_SIZE=$(du -sb ${PKGDIR}/usr | cut -f1)
+          cat > ${PKGDIR}/.PKGINFO << EOF
+          pkgname = tfl
+          pkgver = ${APP_VERSION}-1
+          pkgdesc = Unofficial Microsoft Teams client for Linux
+          url = https://github.com/karthick-kk/tfl
+          builddate = $(date +%s)
+          packager = tfl CI
+          size = ${PKG_SIZE}
+          arch = x86_64
+          license = MIT
+          depend = gtk3
+          depend = libayatana-appindicator
+          depend = libnotify
+          depend = nss
+          depend = alsa-lib
+          EOF
+          sed -i 's/^          //' ${PKGDIR}/.PKGINFO
+
+          cd ${PKGDIR}
+          fakeroot -- bash -c 'tar cf - .PKGINFO usr | zstd -19 -o /tmp/tfl.pkg.tar.zst'
+          cp /tmp/tfl.pkg.tar.zst $GITHUB_WORKSPACE/build/tfl-${APP_VERSION}-1-x86_64.pkg.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfl-arch
+          path: build/tfl-*.pkg.tar.zst
