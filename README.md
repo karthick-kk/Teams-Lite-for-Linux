@@ -86,6 +86,16 @@ Environment variable overrides (highest priority):
 | `TFL_HEIGHT` | Window height |
 | `TFL_DEV_TOOLS` | Enable F12 devtools (set to any value) |
 
+### Custom CSS
+
+Place a `custom.css` file in `~/.config/tfl/` to inject custom styles into Teams:
+
+```css
+/* Example: dark scrollbars */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+```
+
 ## Packaging
 
 ### GitHub Actions
