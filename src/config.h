@@ -9,8 +9,16 @@ struct TflConfig {
     std::string config_dir;  // XDG_CONFIG_HOME/tfl
     int width = 1280;
     int height = 800;
+    int x = -1;  // -1 = auto center
+    int y = -1;
     bool enable_dev_tools = false;
-    bool minimized_to_tray = false;  // start minimized
+    bool minimized_to_tray = false;
 };
 
 TflConfig load_config();
+
+// Save window state (size + position) to config dir
+void save_window_state(const TflConfig& config, int x, int y, int w, int h);
+
+// Try to acquire single-instance lock. Returns true if we're the only instance.
+bool acquire_instance_lock(const std::string& config_dir);

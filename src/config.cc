@@ -5,6 +5,9 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <sys/file.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 namespace fs = std::filesystem;
 
@@ -43,6 +46,8 @@ static void parse_config_file(const std::string& path, TflConfig& cfg) {
         else if (key == "height") cfg.height = std::atoi(val.c_str());
         else if (key == "dev_tools") cfg.enable_dev_tools = (val == "true" || val == "1");
         else if (key == "start_minimized") cfg.minimized_to_tray = (val == "true" || val == "1");
+        else if (key == "x") cfg.x = std::atoi(val.c_str());
+        else if (key == "y") cfg.y = std::atoi(val.c_str());
     }
 }
 
@@ -104,5 +109,41 @@ TflConfig load_config() {
     if (const char* h = std::getenv("TFL_HEIGHT")) cfg.height = std::atoi(h);
     if (std::getenv("TFL_DEV_TOOLS")) cfg.enable_dev_tools = true;
 
+    // Load saved window state (overrides config width/height)
+    std::string state_path = cfg.config_dir + "/window-state";
+    if (fs::exists(state_path)) {
+        TflConfig state;
+        parse_config_file(state_path, state);
+        if (state.width > 0) cfg.width = state.width;
+        if (state.height > 0) cfg.height = state.height;
+        cfg.x = state.x;
+        cfg.y = state.y;
+    }
+
     return cfg;
+}
+
+void save_window_state(const TflConfig& config, int x, int y, int w, int h) {
+    std::string path = config.config_dir + "/window-state";
+    std::ofstream file(path);
+    if (!file.is_open()) return;
+    file << "x = " << x << "\n"
+         << "y = " << y << "\n"
+         << "width = " << w << "\n"
+         << "height = " << h << "\n";
+}
+
+static int g_lock_fd = -1;
+
+bool acquire_instance_lock(const std::string& config_dir) {
+    std::string lock_path = config_dir + "/tfl.lock";
+    g_lock_fd = open(lock_path.c_str(), O_CREAT | O_RDWR, 0600);
+    if (g_lock_fd < 0) return false;
+
+    if (flock(g_lock_fd, LOCK_EX | LOCK_NB) != 0) {
+        close(g_lock_fd);
+        g_lock_fd = -1;
+        return false;  // another instance holds the lock
+    }
+    return true;
 }
