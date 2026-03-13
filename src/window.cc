@@ -1,6 +1,7 @@
 #include "window.h"
 #include "tray.h"
 #include "notifications.h"
+#include "config.h"
 #include <cstdio>
 
 // --- TflWindowDelegate ---
@@ -39,20 +40,25 @@ void TflWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window) {
 }
 
 bool TflWindowDelegate::CanClose(CefRefPtr<CefWindow> window) {
+    // Save window state before hiding/closing
+    CefRect bounds = window->GetBounds();
+    save_window_state(config_, bounds.x, bounds.y, bounds.width, bounds.height);
+
     if (tray_quit_requested()) {
-        // Actually quit — close the browser
         CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
         if (browser) {
             browser->GetHost()->CloseBrowser(false);
         }
-        return false;  // let OnBeforeClose handle final quit
+        return false;
     }
-    // Minimize to tray instead of closing
     window->Hide();
     return false;
 }
 
 CefRect TflWindowDelegate::GetInitialBounds(CefRefPtr<CefWindow> window) {
+    if (config_.x >= 0 && config_.y >= 0) {
+        return CefRect(config_.x, config_.y, config_.width, config_.height);
+    }
     return CefRect(0, 0, config_.width, config_.height);
 }
 

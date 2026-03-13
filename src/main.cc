@@ -29,6 +29,12 @@ int main(int argc, char* argv[]) {
     // --- Main browser process: load full config ---
     config = load_config();
 
+    // Single-instance lock
+    if (!acquire_instance_lock(config.config_dir)) {
+        fprintf(stderr, "[tfl] Another instance is already running\n");
+        return 0;
+    }
+
     fprintf(stderr, "[tfl] Starting Teams for Linux (CEF)\n");
 
     CefSettings settings;
