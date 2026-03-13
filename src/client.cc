@@ -1,6 +1,7 @@
 #include "client.h"
 #include "tray.h"
 #include "idle.h"
+#include "notifications.h"
 #include "include/cef_app.h"
 #include "include/views/cef_browser_view.h"
 #include <cstdio>
@@ -111,6 +112,15 @@ void TflClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& ti
     }
     tray_set_tooltip(tooltip);
 
+    // Show desktop notification when badge count increases
+    if (badge > last_badge_ && badge > 0) {
+        int new_msgs = badge - last_badge_;
+        std::string body = std::to_string(new_msgs) + " new message" +
+                           (new_msgs > 1 ? "s" : "");
+        notifications_show("Microsoft Teams", body);
+    }
+    last_badge_ = badge;
+
     // Set window title for GNOME titlebar
     auto views = CefBrowserView::GetForBrowser(browser);
     if (views) {
@@ -152,6 +162,45 @@ bool TflClient::OnRequestMediaAccessPermission(
         return true;
     }
     return false;  // deny for other origins
+}
+
+// Auto-grant permission prompts (notifications, clipboard, etc.) for Teams
+bool TflClient::OnShowPermissionPrompt(
+    CefRefPtr<CefBrowser> browser,
+    uint64_t prompt_id,
+    const CefString& requesting_origin,
+    uint32_t requested_permissions,
+    CefRefPtr<CefPermissionPromptCallback> callback) {
+    std::string origin = requesting_origin.ToString();
+    if (is_teams_domain(origin)) {
+        callback->Continue(CEF_PERMISSION_RESULT_ACCEPT);
+        return true;
+    }
+    callback->Continue(CEF_PERMISSION_RESULT_DENY);
+    return true;
+}
+
+// --- JS Dialogs ---
+
+bool TflClient::OnJSDialog(CefRefPtr<CefBrowser> browser,
+                            const CefString& origin_url,
+                            CefJSDialogHandler::JSDialogType dialog_type,
+                            const CefString& message_text,
+                            const CefString& default_prompt_text,
+                            CefRefPtr<CefJSDialogCallback> callback,
+                            bool& suppress_message) {
+    // Suppress "save password" and other JS dialogs — auto-accept
+    callback->Continue(true, CefString());
+    return true;
+}
+
+bool TflClient::OnBeforeUnloadDialog(CefRefPtr<CefBrowser> browser,
+                                      const CefString& message_text,
+                                      bool is_reload,
+                                      CefRefPtr<CefJSDialogCallback> callback) {
+    // Auto-accept "leave page?" dialogs
+    callback->Continue(true, CefString());
+    return true;
 }
 
 // --- Keyboard ---
