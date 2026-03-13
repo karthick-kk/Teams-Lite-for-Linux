@@ -26,9 +26,14 @@ void TflApp::OnBeforeCommandLineProcessing(
 
     // Enable media stream (camera, mic) — required for getUserMedia
     command_line->AppendSwitch("enable-media-stream");
+    // Auto-select default devices without showing picker UI
+    command_line->AppendSwitch("use-fake-ui-for-media-stream");
 
     // Use PipeWire for audio/screen capture on Wayland
     command_line->AppendSwitch("enable-webrtc-pipewire-capturer");
+
+    // Autoplay for notification sounds
+    command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 
     // Enable screen sharing
     command_line->AppendSwitch("enable-usermedia-screen-capturing");
