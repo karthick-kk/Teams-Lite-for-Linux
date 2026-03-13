@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 static bool is_teams_domain(const std::string& url) {
     return url.find("teams.cloud.microsoft") != std::string::npos ||
@@ -359,7 +360,7 @@ bool TflClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
 
     // Ctrl+Q — quit
     if (event.windows_key_code == 'Q' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) {
-        browser->GetHost()->CloseBrowser(true);
+        tray_request_quit();
         return true;
     }
 
