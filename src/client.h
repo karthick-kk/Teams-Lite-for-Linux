@@ -9,6 +9,7 @@
 #include "include/cef_load_handler.h"
 #include "include/cef_jsdialog_handler.h"
 #include "include/cef_context_menu_handler.h"
+#include "include/cef_download_handler.h"
 #include "config.h"
 #include <list>
 
@@ -20,7 +21,8 @@ class TflClient : public CefClient,
                   public CefKeyboardHandler,
                   public CefLoadHandler,
                   public CefJSDialogHandler,
-                  public CefContextMenuHandler {
+                  public CefContextMenuHandler,
+                  public CefDownloadHandler {
 public:
     explicit TflClient(const TflConfig& config);
 
@@ -33,6 +35,7 @@ public:
     CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
     CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override { return this; }
     CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
+    CefRefPtr<CefDownloadHandler> GetDownloadHandler() override { return this; }
 
     // CefLifeSpanHandler
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
@@ -111,6 +114,16 @@ public:
                               CefRefPtr<CefContextMenuParams> params,
                               int command_id,
                               CefContextMenuHandler::EventFlags event_flags) override;
+
+    // CefDownloadHandler — auto-save to ~/Downloads
+    bool OnBeforeDownload(CefRefPtr<CefBrowser> browser,
+                          CefRefPtr<CefDownloadItem> download_item,
+                          const CefString& suggested_name,
+                          CefRefPtr<CefBeforeDownloadCallback> callback) override;
+
+    void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
+                           CefRefPtr<CefDownloadItem> download_item,
+                           CefRefPtr<CefDownloadItemCallback> callback) override;
 
     bool IsClosing() const { return is_closing_; }
 
