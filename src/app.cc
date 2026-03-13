@@ -10,9 +10,10 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitchWithValue("ozone-platform", "wayland");
     command_line->AppendSwitch("enable-wayland-ime");
 
-    // HiDPI + spellcheck features
+    // HiDPI + spellcheck + VAAPI hardware video encoding
     command_line->AppendSwitchWithValue("enable-features",
-        "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual");
+        "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
+        "VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL");
 
     // GPU acceleration
     command_line->AppendSwitch("enable-gpu");
@@ -35,9 +36,8 @@ void TflApp::OnBeforeCommandLineProcessing(
     // Autoplay for notification sounds
     command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
 
-    // Enable screen sharing
+    // Enable screen sharing via xdg-desktop-portal (Wayland native)
     command_line->AppendSwitch("enable-usermedia-screen-capturing");
-    command_line->AppendSwitchWithValue("auto-select-desktop-capture-source", "Entire screen");
 
     // Spellcheck
     command_line->AppendSwitch("enable-spelling-auto-correct");
