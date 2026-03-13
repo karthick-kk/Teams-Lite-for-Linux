@@ -8,6 +8,7 @@
 #include "include/cef_keyboard_handler.h"
 #include "include/cef_load_handler.h"
 #include "include/cef_jsdialog_handler.h"
+#include "include/cef_context_menu_handler.h"
 #include "config.h"
 #include <list>
 
@@ -18,7 +19,8 @@ class TflClient : public CefClient,
                   public CefPermissionHandler,
                   public CefKeyboardHandler,
                   public CefLoadHandler,
-                  public CefJSDialogHandler {
+                  public CefJSDialogHandler,
+                  public CefContextMenuHandler {
 public:
     explicit TflClient(const TflConfig& config);
 
@@ -30,6 +32,7 @@ public:
     CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override { return this; }
     CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
     CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override { return this; }
+    CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
 
     // CefLifeSpanHandler
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
@@ -59,7 +62,7 @@ public:
                             CefRefPtr<CefSSLInfo> ssl_info,
                             CefRefPtr<CefCallback> callback) override;
 
-    // CefPermissionHandler — auto-grant media + permission prompts
+    // CefPermissionHandler
     bool OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser,
                                         CefRefPtr<CefFrame> frame,
                                         const CefString& requesting_url,
@@ -83,7 +86,7 @@ public:
                    CefRefPtr<CefFrame> frame,
                    int httpStatusCode) override;
 
-    // CefJSDialogHandler — suppress browser prompts
+    // CefJSDialogHandler
     bool OnJSDialog(CefRefPtr<CefBrowser> browser,
                     const CefString& origin_url,
                     CefJSDialogHandler::JSDialogType dialog_type,
@@ -96,6 +99,18 @@ public:
                               const CefString& message_text,
                               bool is_reload,
                               CefRefPtr<CefJSDialogCallback> callback) override;
+
+    // CefContextMenuHandler — spellcheck suggestions in right-click menu
+    void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
+                             CefRefPtr<CefFrame> frame,
+                             CefRefPtr<CefContextMenuParams> params,
+                             CefRefPtr<CefMenuModel> model) override;
+
+    bool OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
+                              CefRefPtr<CefFrame> frame,
+                              CefRefPtr<CefContextMenuParams> params,
+                              int command_id,
+                              CefContextMenuHandler::EventFlags event_flags) override;
 
     bool IsClosing() const { return is_closing_; }
 

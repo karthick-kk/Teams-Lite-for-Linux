@@ -76,6 +76,67 @@ bool TflClient::OnBeforePopup(
     return true;  // cancel popup
 }
 
+// --- Context Menu ---
+
+void TflClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
+                                     CefRefPtr<CefFrame> frame,
+                                     CefRefPtr<CefContextMenuParams> params,
+                                     CefRefPtr<CefMenuModel> model) {
+    // If there's a misspelled word, add spelling suggestions at the top
+    CefString misspelled = params->GetMisspelledWord();
+    if (misspelled.length() > 0) {
+        std::vector<CefString> suggestions;
+        params->GetDictionarySuggestions(suggestions);
+
+        model->Clear();
+
+        if (suggestions.empty()) {
+            model->AddItem(MENU_ID_NO_SPELLING_SUGGESTIONS, "No suggestions");
+            model->SetEnabled(MENU_ID_NO_SPELLING_SUGGESTIONS, false);
+        } else {
+            for (size_t i = 0; i < suggestions.size() && i <= 4; i++) {
+                model->AddItem(MENU_ID_SPELLCHECK_SUGGESTION_0 + (int)i, suggestions[i]);
+            }
+        }
+        model->AddSeparator();
+    }
+
+    // Keep standard edit commands for editable fields
+    if (params->IsEditable()) {
+        model->AddItem(MENU_ID_UNDO, "Undo");
+        model->AddItem(MENU_ID_REDO, "Redo");
+        model->AddSeparator();
+        model->AddItem(MENU_ID_CUT, "Cut");
+        model->AddItem(MENU_ID_COPY, "Copy");
+        model->AddItem(MENU_ID_PASTE, "Paste");
+        model->AddItem(MENU_ID_SELECT_ALL, "Select All");
+    } else if (params->GetSelectionText().length() > 0) {
+        model->AddItem(MENU_ID_COPY, "Copy");
+    }
+}
+
+bool TflClient::OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
+                                      CefRefPtr<CefFrame> frame,
+                                      CefRefPtr<CefContextMenuParams> params,
+                                      int command_id,
+                                      CefContextMenuHandler::EventFlags event_flags) {
+    if (command_id >= MENU_ID_SPELLCHECK_SUGGESTION_0 &&
+        command_id <= MENU_ID_SPELLCHECK_SUGGESTION_LAST) {
+        std::vector<CefString> suggestions;
+        params->GetDictionarySuggestions(suggestions);
+        int idx = command_id - MENU_ID_SPELLCHECK_SUGGESTION_0;
+        if (idx >= 0 && idx < (int)suggestions.size()) {
+            CefString replacement = suggestions[idx];
+            frame->ExecuteJavaScript(
+                "document.execCommand('insertText', false, '" +
+                replacement.ToString() + "');",
+                frame->GetURL(), 0);
+        }
+        return true;
+    }
+    return false;
+}
+
 // --- Load ---
 
 void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
