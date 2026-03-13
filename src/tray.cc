@@ -1,7 +1,11 @@
 #include "tray.h"
+#include "include/cef_task.h"
 #include <libayatana-appindicator/app-indicator.h>
 #include <gtk/gtk.h>
 #include <cstdio>
+#include <functional>
+#include <filesystem>
+#include <unistd.h>
 
 static AppIndicator* g_indicator = nullptr;
 static GtkWidget* g_menu = nullptr;
@@ -9,17 +13,33 @@ static CefRefPtr<CefBrowser> g_browser;
 static CefRefPtr<CefWindow> g_window;
 static bool g_quit_requested = false;
 
+// Helper to run a lambda on CEF's UI thread
+class CefLambdaTask : public CefTask {
+public:
+    explicit CefLambdaTask(std::function<void()> fn) : fn_(std::move(fn)) {}
+    void Execute() override { fn_(); }
+private:
+    std::function<void()> fn_;
+    IMPLEMENT_REFCOUNTING(CefLambdaTask);
+};
+
 static void on_show_activate(GtkMenuItem*, gpointer) {
-    if (g_window) {
-        g_window->Show();
-        g_window->Activate();
+    CefRefPtr<CefWindow> win = g_window;
+    if (win) {
+        CefPostTask(TID_UI, new CefLambdaTask([win]() {
+            win->Show();
+            win->Activate();
+        }));
     }
 }
 
 static void on_quit_activate(GtkMenuItem*, gpointer) {
     g_quit_requested = true;
-    if (g_window) {
-        g_window->Close();
+    CefRefPtr<CefBrowser> browser = g_browser;
+    if (browser) {
+        CefPostTask(TID_UI, new CefLambdaTask([browser]() {
+            browser->GetHost()->CloseBrowser(true);
+        }));
     }
 }
 
@@ -27,15 +47,43 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
     g_browser = browser;
     g_window = window;
 
-    g_indicator = app_indicator_new(
-        "tfl-teams-for-linux",
-        "teams-for-linux",
-        APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+    // Find icon path relative to executable
+    char exe_path[4096];
+    std::string icon_path;
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (len > 0) {
+        exe_path[len] = '\0';
+        std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
+        // Check next to binary first, then ../data/, then source data/
+        for (const auto& candidate : {
+            exe_dir + "/tfl.svg",
+            exe_dir + "/../data/tfl.svg",
+            exe_dir + "/../share/icons/tfl.svg",
+        }) {
+            if (std::filesystem::exists(candidate)) {
+                icon_path = std::filesystem::canonical(candidate).string();
+                break;
+            }
+        }
+    }
+
+    if (icon_path.empty()) {
+        // Fallback: use icon name from theme
+        g_indicator = app_indicator_new(
+            "tfl-teams-for-linux", "teams-for-linux",
+            APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+    } else {
+        // Use icon from file path — appindicator needs dir + icon name (no extension)
+        std::string icon_dir = std::filesystem::path(icon_path).parent_path().string();
+        g_indicator = app_indicator_new_with_path(
+            "tfl-teams-for-linux", "tfl",
+            APP_INDICATOR_CATEGORY_COMMUNICATIONS,
+            icon_dir.c_str());
+    }
 
     app_indicator_set_status(g_indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_title(g_indicator, "Teams for Linux");
 
-    // Build context menu
     g_menu = gtk_menu_new();
 
     GtkWidget* show_item = gtk_menu_item_new_with_label("Show");
