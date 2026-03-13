@@ -24,7 +24,7 @@ Built with [CEF](https://bitbucket.org/chromiumembedded/cef) (Chromium Embedded 
 - **Auto-grant permissions** — camera, mic, notifications, clipboard auto-accepted for Teams
 - **Suppress prompts** — "save password" and "leave page" dialogs auto-accepted
 - **XDG config** — `~/.config/tfl/config` with environment variable overrides
-- **Keyboard shortcuts** — F5 reload, Ctrl+R reload, Ctrl+Shift+R hard reload, F12 devtools
+- **Keyboard shortcuts** — F5 reload, Ctrl+R reload, Ctrl+Shift+R hard reload, Ctrl+Q quit, Alt+F4 quit, F12 devtools
 
 ## Building
 
@@ -72,6 +72,9 @@ Config file: `~/.config/tfl/config` (created on first run)
 
 # Start minimized to tray
 # start_minimized = false
+
+# Close to tray (X button hides instead of quitting, Ctrl+Q/Alt+F4 always quit)
+# close_to_tray = true
 
 # Enable developer tools (F12)
 # dev_tools = false
