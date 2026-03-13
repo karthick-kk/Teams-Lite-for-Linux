@@ -17,6 +17,8 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 pkg_check_modules(APPINDICATOR REQUIRED ayatana-appindicator3-0.1)
 pkg_check_modules(LIBNOTIFY REQUIRED libnotify)
+pkg_check_modules(NSS REQUIRED nss)
+pkg_check_modules(ALSA REQUIRED alsa)
 
 # Sources
 add_executable(tfl
@@ -36,6 +38,8 @@ target_include_directories(tfl PRIVATE
     ${GTK3_INCLUDE_DIRS}
     ${APPINDICATOR_INCLUDE_DIRS}
     ${LIBNOTIFY_INCLUDE_DIRS}
+    ${NSS_INCLUDE_DIRS}
+    ${ALSA_INCLUDE_DIRS}
     src
 )
 
@@ -45,6 +49,8 @@ target_link_libraries(tfl PRIVATE
     ${GTK3_LIBRARIES}
     ${APPINDICATOR_LIBRARIES}
     ${LIBNOTIFY_LIBRARIES}
+    ${NSS_LIBRARIES}
+    ${ALSA_LIBRARIES}
     pthread
     dl
 )
