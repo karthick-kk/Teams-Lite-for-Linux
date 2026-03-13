@@ -1,0 +1,61 @@
+# Maintainer: tfl <tfl@dev.tfl>
+pkgname=tfl
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Unofficial Microsoft Teams client for Linux (native C++/CEF)"
+arch=('x86_64')
+url="https://github.com/karthick-kk/tfl"
+license=('MIT')
+depends=('gtk3' 'libayatana-appindicator' 'libnotify' 'nss' 'alsa-lib')
+makedepends=('cmake' 'pkg-config' 'curl' 'patchelf')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/karthick-kk/tfl/archive/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+_cef_version="145.0.23+g3e7fe1c+chromium-145.0.7632.68"
+_cef_dir="${srcdir}/cef"
+
+prepare() {
+    # Download CEF binary distribution
+    cd "${srcdir}"
+    bash "${pkgname}-${pkgver}/packaging/download-cef.sh" "${_cef_dir}"
+}
+
+build() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+    mkdir -p build && cd build
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT="${_cef_dir}"
+    make -j$(nproc)
+    patchelf --set-rpath '$ORIGIN' tfl
+}
+
+package() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+
+    # Binary and CEF libs
+    install -Dm755 build/tfl "${pkgdir}/usr/lib/tfl/tfl"
+
+    for lib in libcef.so libEGL.so libGLESv2.so libvk_swiftshader.so libvulkan.so.1; do
+        install -Dm755 "${_cef_dir}/Release/${lib}" "${pkgdir}/usr/lib/tfl/${lib}"
+    done
+    for f in v8_context_snapshot.bin vk_swiftshader_icd.json; do
+        install -Dm644 "${_cef_dir}/Release/${f}" "${pkgdir}/usr/lib/tfl/${f}"
+    done
+
+    # CEF resources
+    for f in icudtl.dat chrome_100_percent.pak chrome_200_percent.pak resources.pak; do
+        install -Dm644 "${_cef_dir}/Resources/${f}" "${pkgdir}/usr/lib/tfl/${f}"
+    done
+    cp -r "${_cef_dir}/Resources/locales" "${pkgdir}/usr/lib/tfl/"
+
+    # Launcher
+    install -Dm755 /dev/stdin "${pkgdir}/usr/bin/tfl" <<'EOF'
+#!/bin/sh
+exec /usr/lib/tfl/tfl "$@"
+EOF
+
+    # Desktop integration
+    install -Dm644 data/tfl.desktop "${pkgdir}/usr/share/applications/tfl.desktop"
+    install -Dm644 data/dev.tfl.teams-for-linux.appdata.xml "${pkgdir}/usr/share/metainfo/dev.tfl.teams-for-linux.appdata.xml"
+    install -Dm644 data/tfl.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/tfl.svg"
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
