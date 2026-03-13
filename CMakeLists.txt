@@ -30,6 +30,7 @@ add_executable(tfl
     src/tray.cc
     src/notifications.cc
     src/idle.cc
+    src/openh264.cc
 )
 
 target_include_directories(tfl PRIVATE
