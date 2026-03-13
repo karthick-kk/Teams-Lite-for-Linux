@@ -358,8 +358,9 @@ bool TflClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
         return true;
     }
 
-    // Ctrl+Q — quit
-    if (event.windows_key_code == 'Q' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) {
+    // Ctrl+Q or Alt+F4 — quit
+    if ((event.windows_key_code == 'Q' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) ||
+        (event.windows_key_code == 0x73 && (event.modifiers & EVENTFLAG_ALT_DOWN))) {  // 0x73 = F4
         tray_request_quit();
         return true;
     }
