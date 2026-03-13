@@ -35,10 +35,11 @@ static void on_show_activate(GtkMenuItem*, gpointer) {
 
 static void on_quit_activate(GtkMenuItem*, gpointer) {
     g_quit_requested = true;
-    CefRefPtr<CefBrowser> browser = g_browser;
-    if (browser) {
-        CefPostTask(TID_UI, new CefLambdaTask([browser]() {
-            browser->GetHost()->CloseBrowser(true);
+    // Close the window — CanClose will see quit_requested and return true
+    CefRefPtr<CefWindow> win = g_window;
+    if (win) {
+        CefPostTask(TID_UI, new CefLambdaTask([win]() {
+            win->Close();
         }));
     }
 }
@@ -111,6 +112,16 @@ void tray_set_tooltip(const std::string& text) {
 
 bool tray_quit_requested() {
     return g_quit_requested;
+}
+
+void tray_request_quit() {
+    g_quit_requested = true;
+    CefRefPtr<CefWindow> win = g_window;
+    if (win) {
+        CefPostTask(TID_UI, new CefLambdaTask([win]() {
+            win->Close();
+        }));
+    }
 }
 
 void tray_shutdown() {
