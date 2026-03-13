@@ -357,5 +357,11 @@ bool TflClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
         return true;
     }
 
+    // Ctrl+Q — quit
+    if (event.windows_key_code == 'Q' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) {
+        browser->GetHost()->CloseBrowser(true);
+        return true;
+    }
+
     return false;
 }
