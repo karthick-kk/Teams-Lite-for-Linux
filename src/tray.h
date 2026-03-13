@@ -13,5 +13,8 @@ void tray_set_tooltip(const std::string& text);
 // Check if quit was requested from tray
 bool tray_quit_requested();
 
+// Set the quit flag (used by Ctrl+Q and tray Quit)
+void tray_request_quit();
+
 // Cleanup tray on shutdown
 void tray_shutdown();
