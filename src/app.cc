@@ -24,6 +24,12 @@ void TflApp::OnBeforeCommandLineProcessing(
     // Disable sandbox (we're not shipping chrome-sandbox suid)
     command_line->AppendSwitch("no-sandbox");
 
+    // Enable media stream (camera, mic) — required for getUserMedia
+    command_line->AppendSwitch("enable-media-stream");
+
+    // Use PipeWire for audio/screen capture on Wayland
+    command_line->AppendSwitch("enable-webrtc-pipewire-capturer");
+
     // Enable screen sharing
     command_line->AppendSwitch("enable-usermedia-screen-capturing");
     command_line->AppendSwitchWithValue("auto-select-desktop-capture-source", "Entire screen");
