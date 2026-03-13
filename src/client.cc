@@ -66,7 +66,6 @@ bool TflClient::OnBeforePopup(
     // Exception: allow OAuth popups that need separate windows
     std::string url = target_url.ToString();
     if (is_teams_domain(url)) {
-        // Allow auth/Teams popups
         return false;
     }
 
@@ -82,7 +81,6 @@ void TflClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
                                      CefRefPtr<CefFrame> frame,
                                      CefRefPtr<CefContextMenuParams> params,
                                      CefRefPtr<CefMenuModel> model) {
-    // If there's a misspelled word, add spelling suggestions at the top
     CefString misspelled = params->GetMisspelledWord();
     if (misspelled.length() > 0) {
         std::vector<CefString> suggestions;
@@ -101,7 +99,6 @@ void TflClient::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
         model->AddSeparator();
     }
 
-    // Keep standard edit commands for editable fields
     if (params->IsEditable()) {
         model->AddItem(MENU_ID_UNDO, "Undo");
         model->AddItem(MENU_ID_REDO, "Redo");
@@ -135,6 +132,32 @@ bool TflClient::OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
         return true;
     }
     return false;
+}
+
+// --- Downloads ---
+
+bool TflClient::OnBeforeDownload(CefRefPtr<CefBrowser> browser,
+                                  CefRefPtr<CefDownloadItem> download_item,
+                                  const CefString& suggested_name,
+                                  CefRefPtr<CefBeforeDownloadCallback> callback) {
+    const char* home = std::getenv("HOME");
+    std::string downloads_dir = std::string(home ? home : "/tmp") + "/Downloads";
+    std::string path = downloads_dir + "/" + suggested_name.ToString();
+
+    fprintf(stderr, "[tfl] Downloading: %s\n", path.c_str());
+    callback->Continue(path, false);
+    return true;
+}
+
+void TflClient::OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
+                                   CefRefPtr<CefDownloadItem> download_item,
+                                   CefRefPtr<CefDownloadItemCallback> callback) {
+    if (download_item->IsComplete()) {
+        fprintf(stderr, "[tfl] Download complete: %s\n",
+                download_item->GetFullPath().ToString().c_str());
+    } else if (download_item->IsCanceled()) {
+        fprintf(stderr, "[tfl] Download canceled\n");
+    }
 }
 
 // --- Load ---
