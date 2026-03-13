@@ -44,7 +44,17 @@ bool TflWindowDelegate::CanClose(CefRefPtr<CefWindow> window) {
     CefRect bounds = window->GetBounds();
     save_window_state(config_, bounds.x, bounds.y, bounds.width, bounds.height);
 
-    // Always allow close — WM shortcuts (Super+Q, Alt+F4) and X button all quit
+    if (tray_quit_requested()) {
+        tray_shutdown();
+        return true;
+    }
+
+    // Close-to-tray: hide window instead of quitting
+    if (config_.close_to_tray) {
+        window->Hide();
+        return false;
+    }
+
     tray_shutdown();
     return true;
 }

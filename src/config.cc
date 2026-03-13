@@ -46,6 +46,7 @@ static void parse_config_file(const std::string& path, TflConfig& cfg) {
         else if (key == "height") cfg.height = std::atoi(val.c_str());
         else if (key == "dev_tools") cfg.enable_dev_tools = (val == "true" || val == "1");
         else if (key == "start_minimized") cfg.minimized_to_tray = (val == "true" || val == "1");
+        else if (key == "close_to_tray") cfg.close_to_tray = (val == "true" || val == "1");
         else if (key == "x") cfg.x = std::atoi(val.c_str());
         else if (key == "y") cfg.y = std::atoi(val.c_str());
     }
@@ -68,6 +69,9 @@ static void write_default_config(const std::string& path) {
          << "\n"
          << "# Start minimized to tray\n"
          << "# start_minimized = false\n"
+         << "\n"
+         << "# Close to tray (X button hides instead of quitting)\n"
+         << "# close_to_tray = true\n"
          << "\n"
          << "# Enable developer tools (F12)\n"
          << "# dev_tools = false\n";
