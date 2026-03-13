@@ -6,6 +6,8 @@
 #include "include/views/cef_browser_view.h"
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
 
 static bool is_teams_domain(const std::string& url) {
     return url.find("teams.cloud.microsoft") != std::string::npos ||
@@ -153,8 +155,11 @@ void TflClient::OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
                                    CefRefPtr<CefDownloadItem> download_item,
                                    CefRefPtr<CefDownloadItemCallback> callback) {
     if (download_item->IsComplete()) {
-        fprintf(stderr, "[tfl] Download complete: %s\n",
-                download_item->GetFullPath().ToString().c_str());
+        std::string filename = download_item->GetFullPath().ToString();
+        auto slash = filename.rfind('/');
+        std::string name = (slash != std::string::npos) ? filename.substr(slash + 1) : filename;
+        notifications_show("Download complete", name);
+        fprintf(stderr, "[tfl] Download complete: %s\n", filename.c_str());
     } else if (download_item->IsCanceled()) {
         fprintf(stderr, "[tfl] Download canceled\n");
     }
@@ -172,6 +177,31 @@ void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
 
     // Inject visibility override to prevent "Away" status when window is unfocused
     frame->ExecuteJavaScript(idle_get_visibility_override_js(), url, 0);
+
+    // Inject custom CSS from ~/.config/tfl/custom.css
+    std::string css_path = config_.config_dir + "/custom.css";
+    std::ifstream css_file(css_path);
+    if (css_file.is_open()) {
+        std::ostringstream ss;
+        ss << css_file.rdbuf();
+        std::string css = ss.str();
+        if (!css.empty()) {
+            // Escape for JS string
+            std::string escaped;
+            for (char c : css) {
+                if (c == '\\') escaped += "\\\\";
+                else if (c == '\'') escaped += "\\'";
+                else if (c == '\n') escaped += "\\n";
+                else if (c == '\r') continue;
+                else escaped += c;
+            }
+            std::string js = "(function(){var s=document.createElement('style');"
+                             "s.textContent='" + escaped + "';"
+                             "document.head.appendChild(s);})();";
+            frame->ExecuteJavaScript(js, url, 0);
+            fprintf(stderr, "[tfl] Custom CSS injected from %s\n", css_path.c_str());
+        }
+    }
 }
 
 // --- Display ---
