@@ -13,6 +13,7 @@ struct TflConfig {
     int y = -1;
     bool enable_dev_tools = false;
     bool minimized_to_tray = false;
+    bool close_to_tray = true;  // X button hides to tray instead of quitting
 };
 
 TflConfig load_config();
