@@ -1,5 +1,6 @@
 #include "window.h"
 #include "tray.h"
+#include "notifications.h"
 #include <cstdio>
 
 // --- TflWindowDelegate ---
@@ -18,6 +19,15 @@ void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
     if (browser) {
         tray_init(browser, window);
     }
+
+    // Re-show window when notification is clicked
+    CefRefPtr<CefWindow> win = window;
+    notifications_set_click_handler([win]() {
+        if (win) {
+            win->Show();
+            win->Activate();
+        }
+    });
 
     fprintf(stderr, "[tfl] Window created\n");
 }
