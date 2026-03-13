@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # CEF paths
-set(CEF_ROOT "/tmp/electrobun-fork/vendors" CACHE PATH "CEF binary distribution root")
+set(CEF_ROOT "/tmp/cef" CACHE PATH "CEF binary distribution root")
 set(CEF_LIB_DIR "${CEF_ROOT}/Release")
 set(CEF_RES_DIR "${CEF_ROOT}/Resources")
 set(CEF_INCLUDE_DIR "${CEF_ROOT}/include")
