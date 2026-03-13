@@ -40,17 +40,15 @@ void TflWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window) {
 }
 
 bool TflWindowDelegate::CanClose(CefRefPtr<CefWindow> window) {
-    // Save window state before hiding/closing
+    // Save window state
     CefRect bounds = window->GetBounds();
     save_window_state(config_, bounds.x, bounds.y, bounds.width, bounds.height);
 
     if (tray_quit_requested()) {
-        CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
-        if (browser) {
-            browser->GetHost()->CloseBrowser(false);
-        }
-        return false;
+        // Allow the window to close — OnBeforeClose will call CefQuitMessageLoop
+        return true;
     }
+    // Minimize to tray instead of closing
     window->Hide();
     return false;
 }
