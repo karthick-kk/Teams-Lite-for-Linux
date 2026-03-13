@@ -3,7 +3,7 @@
 set -euo pipefail
 
 CEF_VERSION="145.0.23+g3e7fe1c+chromium-145.0.7632.68"
-CEF_DIST="cef_binary_${CEF_VERSION}_linux64_minimal"
+CEF_DIST="cef_binary_${CEF_VERSION}_linux64"
 CEF_URL="https://cef-builds.spotifycdn.com/${CEF_DIST}.tar.bz2"
 CEF_DIR="${1:-/tmp/cef}"
 
