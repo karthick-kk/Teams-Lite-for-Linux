@@ -3,6 +3,7 @@
 #include "window.h"
 #include "config.h"
 #include "notifications.h"
+#include "openh264.h"
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
@@ -35,6 +36,18 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // Download Cisco's OpenH264 if not present (royalty-free binary)
+    std::string openh264_dir = openh264_ensure_available(config.cache_dir);
+    if (!openh264_dir.empty()) {
+        // Add to library path so CEF's WebRTC can dlopen libopenh264.so
+        std::string ld_path = openh264_dir;
+        const char* existing = std::getenv("LD_LIBRARY_PATH");
+        if (existing && existing[0]) {
+            ld_path += ":" + std::string(existing);
+        }
+        setenv("LD_LIBRARY_PATH", ld_path.c_str(), 1);
+    }
+
     fprintf(stderr, "[tfl] Starting Teams for Linux (CEF)\n");
 
     CefSettings settings;
@@ -48,6 +61,7 @@ int main(int argc, char* argv[]) {
     CefString(&settings.accept_language_list) = "en-US,en";
     CefString(&settings.log_file) = config.cache_dir + "/cef.log";
     settings.log_severity = LOGSEVERITY_WARNING;
+    settings.remote_debugging_port = 9222;
     CefString(&settings.user_agent) = config.user_agent;
 
     char exe_path[4096];
