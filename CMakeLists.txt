@@ -111,6 +111,7 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/tfl-launcher DESTINATION bin RENAME
 # Desktop integration
 install(FILES data/tfl.desktop DESTINATION share/applications)
 install(FILES data/dev.tfl.teams-for-linux.appdata.xml DESTINATION share/metainfo)
+install(FILES data/tfl-app.svg DESTINATION share/icons/hicolor/scalable/apps)
 
 # Generate launcher script
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/tfl-launcher

@@ -2,7 +2,7 @@
 Name=Teams Lite for Linux
 Comment=Teams Lite for Linux — unofficial Microsoft Teams client
 Exec=tfl %U
-Icon=tfl
+Icon=tfl-app
 Type=Application
 Categories=Network;InstantMessaging;Chat;
 Keywords=teams;microsoft;chat;meeting;
