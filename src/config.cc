@@ -58,7 +58,7 @@ static void write_default_config(const std::string& path) {
     if (!file.is_open()) return;
 
     file << "# tfl — Teams Lite for Linux configuration\n"
-         << "# See https://github.com/karthick-kk/tfl for documentation\n"
+         << "# See https://github.com/karthick-kk/Teams-Lite-for-Linux for documentation\n"
          << "\n"
          << "# Teams URL\n"
          << "# url = https://teams.cloud.microsoft\n"
