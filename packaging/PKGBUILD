@@ -57,5 +57,6 @@ EOF
     install -Dm644 data/tfl.desktop "${pkgdir}/usr/share/applications/tfl.desktop"
     install -Dm644 data/dev.tfl.teams-for-linux.appdata.xml "${pkgdir}/usr/share/metainfo/dev.tfl.teams-for-linux.appdata.xml"
     install -Dm644 data/tfl.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/tfl.svg"
+    install -Dm644 data/tfl-app.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/tfl-app.svg"
     install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 }
