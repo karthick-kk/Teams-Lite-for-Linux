@@ -66,6 +66,10 @@ jobs:
           cp data/tfl.desktop pkg/${PKG}/usr/share/applications/
           cp data/dev.tfl.teams-for-linux.appdata.xml pkg/${PKG}/usr/share/metainfo/
 
+          mkdir -p pkg/${PKG}/usr/share/icons/hicolor/scalable/apps
+          cp data/tfl.svg pkg/${PKG}/usr/share/icons/hicolor/scalable/apps/
+          cp data/tfl-app.svg pkg/${PKG}/usr/share/icons/hicolor/scalable/apps/
+
           cat > pkg/${PKG}/DEBIAN/control << 'EOF'
           Package: tfl
           Version: VERSION_PLACEHOLDER
@@ -97,7 +101,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          dnf install -y gcc-c++ cmake pkg-config make curl tar bzip2 patchelf \
+          dnf install -y gcc-c++ cmake pkg-config make curl tar bzip2 patchelf \https://github.com/karthick-kk/Teams-Lite-for-Linux
             gtk3-devel libayatana-appindicator-gtk3-devel libnotify-devel \
             nss-devel alsa-lib-devel cups-devel atk-devel at-spi2-atk-devel \
             libXcomposite-devel libXdamage-devel libXrandr-devel \
@@ -143,6 +147,10 @@ jobs:
           cp data/tfl.desktop ${DESTDIR}/usr/share/applications/
           cp data/dev.tfl.teams-for-linux.appdata.xml ${DESTDIR}/usr/share/metainfo/
 
+          mkdir -p ${DESTDIR}/usr/share/icons/hicolor/scalable/apps
+          cp data/tfl.svg ${DESTDIR}/usr/share/icons/hicolor/scalable/apps/
+          cp data/tfl-app.svg ${DESTDIR}/usr/share/icons/hicolor/scalable/apps/
+
           cat > ~/rpmbuild/SPECS/tfl.spec << SPEC
           Name:           tfl
           Version:        ${APP_VERSION}
@@ -166,6 +174,8 @@ jobs:
           /usr/bin/tfl
           /usr/share/applications/tfl.desktop
           /usr/share/metainfo/dev.tfl.teams-for-linux.appdata.xml
+          /usr/share/icons/hicolor/scalable/apps/tfl.svg
+          /usr/share/icons/hicolor/scalable/apps/tfl-app.svg
           SPEC
           sed -i 's/^          //' ~/rpmbuild/SPECS/tfl.spec
 
@@ -226,6 +236,10 @@ jobs:
 
           cp data/tfl.desktop ${PKGDIR}/usr/share/applications/
           cp data/dev.tfl.teams-for-linux.appdata.xml ${PKGDIR}/usr/share/metainfo/
+
+          mkdir -p ${PKGDIR}/usr/share/icons/hicolor/scalable/apps
+          cp data/tfl.svg ${PKGDIR}/usr/share/icons/hicolor/scalable/apps/
+          cp data/tfl-app.svg ${PKGDIR}/usr/share/icons/hicolor/scalable/apps/
 
           PKG_SIZE=$(du -sb ${PKGDIR}/usr | cut -f1)
           cat > ${PKGDIR}/.PKGINFO << EOF
