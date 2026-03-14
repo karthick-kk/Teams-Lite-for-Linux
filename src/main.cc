@@ -104,6 +104,12 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "[tfl] Browser loading: %s\n", config.url.c_str());
 
     CefRunMessageLoop();
+
+    // Release all CEF refs before shutdown
+    client = nullptr;
+    bv_delegate = nullptr;
+    app = nullptr;
+
     notifications_shutdown();
     CefShutdown();
     fprintf(stderr, "[tfl] Shutdown complete\n");
