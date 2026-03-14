@@ -149,7 +149,7 @@ jobs:
           Release:        1%{?dist}
           Summary:        Teams Lite for Linux — unofficial Microsoft Teams client
           License:        MIT
-          URL:            https://github.com/karthick-kk/tfl
+          URL:            https://github.com/karthick-kk/Teams-Lite-for-Linux
 
           AutoReqProv:    no
           Requires:       gtk3, libnotify, nss, at-spi2-atk, cups-libs, libXcomposite, libXdamage, libXrandr, alsa-lib
@@ -232,7 +232,7 @@ jobs:
           pkgname = tfl
           pkgver = ${APP_VERSION}-1
           pkgdesc = Teams Lite for Linux — unofficial Microsoft Teams client
-          url = https://github.com/karthick-kk/tfl
+          url = https://github.com/karthick-kk/Teams-Lite-for-Linux
           builddate = $(date +%s)
           packager = tfl CI
           size = ${PKG_SIZE}

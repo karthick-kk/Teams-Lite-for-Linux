@@ -4,18 +4,18 @@ pkgver=0.1.0
 pkgrel=1
 pkgdesc="Teams Lite for Linux — unofficial Microsoft Teams client (native C++/CEF)"
 arch=('x86_64')
-url="https://github.com/karthick-kk/tfl"
+url="https://github.com/karthick-kk/Teams-Lite-for-Linux"
 license=('MIT')
 depends=('gtk3' 'libayatana-appindicator' 'libnotify' 'nss' 'alsa-lib')
 makedepends=('cmake' 'pkg-config' 'curl' 'patchelf')
-source=("${pkgname}-${pkgver}.tar.gz::https://github.com/karthick-kk/tfl/archive/v${pkgver}.tar.gz")
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/karthick-kk/Teams-Lite-for-Linux/archive/v${pkgver}.tar.gz")
 sha256sums=('SKIP')
 
-_cef_version="145.0.23+g3e7fe1c+chromium-145.0.7632.68"
+_cef_version="145.0.7632.160"
 _cef_dir="${srcdir}/cef"
 
 prepare() {
-    # Download CEF binary distribution
+    # Download pre-built CEF with H.264 + PipeWire from GitHub Release
     cd "${srcdir}"
     bash "${pkgname}-${pkgver}/packaging/download-cef.sh" "${_cef_dir}"
 }
