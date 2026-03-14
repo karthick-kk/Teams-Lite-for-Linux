@@ -12,7 +12,7 @@ static void on_notification_action(NotifyNotification* n, char* action, gpointer
 }
 
 void notifications_init() {
-    notify_init("Teams for Linux");
+    notify_init("Teams Lite for Linux");
     fprintf(stderr, "[tfl] Notifications initialized\n");
 }
 

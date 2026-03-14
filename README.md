@@ -1,4 +1,4 @@
-# tfl — Teams for Linux
+# tfl — Teams Lite for Linux
 
 Unofficial Microsoft Teams client for Linux. Pure C++, native Wayland, minimal footprint.
 
@@ -9,6 +9,8 @@ Built with [CEF](https://bitbucket.org/chromiumembedded/cef) (Chromium Embedded 
 - **Native Wayland** — runs directly on Wayland via ozone-platform (XWayland fallback)
 - **HiDPI** — auto-detects display scale factor
 - **Frameless window** — GNOME/KDE provides native window decoration
+- **H.264 video calls** — OpenH264 encoding for Teams video calls (runtime download, royalty-free)
+- **Screen sharing** — PipeWire capture via XDG Desktop Portal (native Wayland)
 - **System tray** — minimize to tray, show/quit from tray menu
 - **Close-to-tray** — closing the window hides it; quit from tray to exit
 - **Cookie persistence** — login session survives restarts (`~/.cache/tfl/`)
@@ -17,7 +19,6 @@ Built with [CEF](https://bitbucket.org/chromiumembedded/cef) (Chromium Embedded 
 - **Desktop notifications** — native libnotify notifications on new messages, click to show window
 - **Badge count** — parses unread count from page title, updates tray tooltip
 - **Spellcheck** — with right-click suggestions in context menu
-- **Screen sharing** — getDisplayMedia permissions auto-granted for Teams
 - **Downloads** — auto-saves to `~/Downloads` without dialog
 - **Idle override** — injects JS to prevent false "Away" status when window is unfocused
 - **External links** — opens non-Teams URLs in default browser via xdg-open
@@ -47,6 +48,8 @@ sudo dnf install gcc-c++ cmake pkg-config gtk3-devel \
 
 ```bash
 # Download CEF binary distribution (~300MB) and build the wrapper library
+# Note: Spotify CDN build lacks H.264 encoding and PipeWire — video calls
+# and screen sharing require building CEF from source (see below)
 bash packaging/download-cef.sh /tmp/cef
 
 # Build tfl
@@ -57,6 +60,17 @@ make -j$(nproc)
 # Run
 ./tfl
 ```
+
+### Building CEF from source (for H.264 + PipeWire)
+
+The Spotify CDN binary includes H.264 decoding but not encoding, and lacks PipeWire
+support. For video calls and screen sharing on Wayland, build CEF from source:
+
+```bash
+bash packaging/build-cef-source.sh
+```
+
+This requires ~60GB disk space and 2-6 hours. See the script for details.
 
 ## Configuration
 
@@ -135,15 +149,19 @@ tfl/
 │   ├── config.h/cc                         # Configuration
 │   ├── tray.h/cc                           # System tray
 │   ├── notifications.h/cc                  # Desktop notifications
-│   └── idle.h/cc                           # Idle/visibility override
+│   ├── idle.h/cc                           # Idle/visibility override
+│   └── openh264.h/cc                       # Runtime OpenH264 downloader
 ├── data/
 │   ├── tfl.desktop                         # Desktop entry
+│   ├── tfl.svg                             # App icon
 │   └── dev.tfl.teams-for-linux.appdata.xml # AppStream metadata
 ├── packaging/
-│   ├── download-cef.sh                     # CEF downloader
-│   └── build-local.sh                      # Local package builder
+│   ├── download-cef.sh                     # CEF binary downloader (Spotify CDN)
+│   ├── build-cef-source.sh                 # CEF source build (H.264 + PipeWire)
+│   ├── build-local.sh                      # Local package builder (via act)
+│   └── PKGBUILD                            # Arch Linux package
 └── .github/workflows/
-    └── build.yml                           # CI/CD
+    └── build.yml                           # CI/CD (deb/rpm/arch)
 ```
 
 ## License

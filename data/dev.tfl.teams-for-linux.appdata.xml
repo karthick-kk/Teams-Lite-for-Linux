@@ -3,8 +3,8 @@
   <id>dev.tfl.teams-for-linux</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MIT</project_license>
-  <name>Teams for Linux</name>
-  <summary>Unofficial Microsoft Teams client for Linux</summary>
+  <name>Teams Lite for Linux</name>
+  <summary>Teams Lite for Linux — unofficial Microsoft Teams client</summary>
   <description>
     <p>
       A native Microsoft Teams client for Linux built with CEF (Chromium Embedded Framework).
