@@ -13,11 +13,19 @@ void TflApp::OnBeforeCommandLineProcessing(
     // HiDPI + spellcheck + VAAPI hardware video encoding
     command_line->AppendSwitchWithValue("enable-features",
         "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
-        "VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL");
+        "VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL,"
+        "WebRTCPipeWireCapturer");
+
+    // Disable H.264 simulcast — OpenH264 only supports single layer encoding
+    command_line->AppendSwitchWithValue("force-fieldtrials",
+        "WebRTC-H264Simulcast/Disabled/");
 
     // GPU acceleration
     command_line->AppendSwitch("enable-gpu");
     command_line->AppendSwitch("enable-gpu-rasterization");
+
+    // Allow up to 30fps for video capture
+    command_line->AppendSwitchWithValue("max-gum-fps", "30");
 
     // Custom user-agent
     command_line->AppendSwitchWithValue("user-agent", config_.user_agent);
@@ -27,7 +35,7 @@ void TflApp::OnBeforeCommandLineProcessing(
 
     // Enable media stream (camera, mic) — required for getUserMedia
     command_line->AppendSwitch("enable-media-stream");
-    // Auto-select default devices without showing picker UI
+    // Auto-select default devices without showing picker UI (needed for mic/speaker)
     command_line->AppendSwitch("use-fake-ui-for-media-stream");
 
     // Use PipeWire for audio/screen capture on Wayland

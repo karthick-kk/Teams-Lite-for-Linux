@@ -66,20 +66,16 @@ set_target_properties(tfl PROPERTIES
     INSTALL_RPATH "$ORIGIN"
 )
 
-# Symlink CEF binaries and resources flat next to the executable
+# CEF resolves resources relative to libcef.so's loaded location (via RPATH).
+# For dev builds, copy resources next to libcef.so in CEF_LIB_DIR.
+# For installs, everything goes to the same TFL_INSTALL_LIBDIR.
 add_custom_command(TARGET tfl POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/libcef.so $<TARGET_FILE_DIR:tfl>/libcef.so
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/libEGL.so $<TARGET_FILE_DIR:tfl>/libEGL.so
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/libGLESv2.so $<TARGET_FILE_DIR:tfl>/libGLESv2.so
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/libvk_swiftshader.so $<TARGET_FILE_DIR:tfl>/libvk_swiftshader.so
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/libvulkan.so.1 $<TARGET_FILE_DIR:tfl>/libvulkan.so.1
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/v8_context_snapshot.bin $<TARGET_FILE_DIR:tfl>/v8_context_snapshot.bin
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_LIB_DIR}/vk_swiftshader_icd.json $<TARGET_FILE_DIR:tfl>/vk_swiftshader_icd.json
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_RES_DIR}/icudtl.dat $<TARGET_FILE_DIR:tfl>/icudtl.dat
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_RES_DIR}/chrome_100_percent.pak $<TARGET_FILE_DIR:tfl>/chrome_100_percent.pak
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_RES_DIR}/chrome_200_percent.pak $<TARGET_FILE_DIR:tfl>/chrome_200_percent.pak
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_RES_DIR}/resources.pak $<TARGET_FILE_DIR:tfl>/resources.pak
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${CEF_RES_DIR}/locales $<TARGET_FILE_DIR:tfl>/locales
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CEF_RES_DIR}/icudtl.dat ${CEF_LIB_DIR}/icudtl.dat
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CEF_RES_DIR}/chrome_100_percent.pak ${CEF_LIB_DIR}/chrome_100_percent.pak
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CEF_RES_DIR}/chrome_200_percent.pak ${CEF_LIB_DIR}/chrome_200_percent.pak
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CEF_RES_DIR}/resources.pak ${CEF_LIB_DIR}/resources.pak
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${CEF_RES_DIR}/locales ${CEF_LIB_DIR}/locales
+    COMMENT "Copying CEF resources next to libcef.so"
 )
 
 # Install targets
