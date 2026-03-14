@@ -2,7 +2,7 @@
 pkgname=tfl
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="Unofficial Microsoft Teams client for Linux (native C++/CEF)"
+pkgdesc="Teams Lite for Linux — unofficial Microsoft Teams client (native C++/CEF)"
 arch=('x86_64')
 url="https://github.com/karthick-kk/tfl"
 license=('MIT')

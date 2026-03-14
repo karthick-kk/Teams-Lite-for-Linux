@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=Teams for Linux
-Comment=Unofficial Microsoft Teams client for Linux
+Name=Teams Lite for Linux
+Comment=Teams Lite for Linux — unofficial Microsoft Teams client
 Exec=tfl %U
 Icon=tfl
 Type=Application

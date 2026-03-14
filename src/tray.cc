@@ -83,7 +83,7 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
     }
 
     app_indicator_set_status(g_indicator, APP_INDICATOR_STATUS_ACTIVE);
-    app_indicator_set_title(g_indicator, "Teams for Linux");
+    app_indicator_set_title(g_indicator, "Teams Lite for Linux");
 
     g_menu = gtk_menu_new();
 

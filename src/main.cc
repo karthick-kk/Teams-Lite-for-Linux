@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
         setenv("LD_LIBRARY_PATH", ld_path.c_str(), 1);
     }
 
-    fprintf(stderr, "[tfl] Starting Teams for Linux (CEF)\n");
+    fprintf(stderr, "[tfl] Starting Teams Lite for Linux (CEF)\n");
 
     CefSettings settings;
     settings.no_sandbox = true;

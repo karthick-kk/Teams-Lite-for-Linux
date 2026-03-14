@@ -221,7 +221,7 @@ void TflClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& ti
     }
 
     // Update tray tooltip with badge info
-    std::string tooltip = "Teams for Linux";
+    std::string tooltip = "Teams Lite for Linux";
     if (badge > 0) {
         tooltip += " (" + std::to_string(badge) + " unread)";
     }
