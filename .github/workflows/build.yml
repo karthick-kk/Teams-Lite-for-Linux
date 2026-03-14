@@ -74,9 +74,9 @@ jobs:
           Architecture: amd64
           Depends: libgtk-3-0, libayatana-appindicator3-1, libnotify4, libnss3, libatk-bridge2.0-0, libcups2, libxcomposite1, libxdamage1, libxrandr2, libasound2
           Maintainer: tfl <tfl@dev.tfl>
-          Description: Unofficial Microsoft Teams client for Linux
+          Description: Teams Lite for Linux — unofficial Microsoft Teams client
            Native C++/CEF Teams client with Wayland support, HiDPI scaling,
-           system tray, and screen sharing.
+           system tray, screen sharing, and H.264 video calls.
           EOF
           sed -i 's/^          //' pkg/${PKG}/DEBIAN/control
           sed -i "s/VERSION_PLACEHOLDER/${APP_VERSION}/" pkg/${PKG}/DEBIAN/control
@@ -147,7 +147,7 @@ jobs:
           Name:           tfl
           Version:        ${APP_VERSION}
           Release:        1%{?dist}
-          Summary:        Unofficial Microsoft Teams client for Linux
+          Summary:        Teams Lite for Linux — unofficial Microsoft Teams client
           License:        MIT
           URL:            https://github.com/karthick-kk/tfl
 
@@ -156,7 +156,7 @@ jobs:
 
           %description
           Native C++/CEF Teams client with Wayland support, HiDPI scaling,
-          system tray, and screen sharing.
+          system tray, screen sharing, and H.264 video calls.
 
           %install
           cp -a ${DESTDIR}/* %{buildroot}/
@@ -231,7 +231,7 @@ jobs:
           cat > ${PKGDIR}/.PKGINFO << EOF
           pkgname = tfl
           pkgver = ${APP_VERSION}-1
-          pkgdesc = Unofficial Microsoft Teams client for Linux
+          pkgdesc = Teams Lite for Linux — unofficial Microsoft Teams client
           url = https://github.com/karthick-kk/tfl
           builddate = $(date +%s)
           packager = tfl CI
