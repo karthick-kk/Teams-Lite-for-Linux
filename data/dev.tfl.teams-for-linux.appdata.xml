@@ -12,8 +12,8 @@
       and cookie-based session persistence.
     </p>
   </description>
-  <url type="homepage">https://github.com/karthick-kk/tfl</url>
-  <url type="bugtracker">https://github.com/karthick-kk/tfl/issues</url>
+  <url type="homepage">https://github.com/karthick-kk/Teams-Lite-for-Linux</url>
+  <url type="bugtracker">https://github.com/karthick-kk/Teams-Lite-for-Linux/issues</url>
   <launchable type="desktop-id">tfl.desktop</launchable>
   <provides>
     <binary>tfl</binary>

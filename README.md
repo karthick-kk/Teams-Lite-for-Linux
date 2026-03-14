@@ -1,4 +1,4 @@
-# tfl — Teams Lite for Linux
+# Teams Lite for Linux [TFL]
 
 Unofficial Microsoft Teams client for Linux. Pure C++, native Wayland, minimal footprint.
 
@@ -167,3 +167,7 @@ tfl/
 ## License
 
 MIT
+
+## Similar Project / Inspired from
+
+https://github.com/IsmaelMartinez/teams-for-linux

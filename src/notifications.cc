@@ -22,7 +22,7 @@ void notifications_set_click_handler(std::function<void()> handler) {
 
 void notifications_show(const std::string& title, const std::string& body) {
     NotifyNotification* n = notify_notification_new(
-        title.c_str(), body.c_str(), "teams-for-linux");
+        title.c_str(), body.c_str(), "tfl-app");
     notify_notification_set_urgency(n, NOTIFY_URGENCY_NORMAL);
     notify_notification_set_timeout(n, 5000);
 
