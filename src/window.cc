@@ -66,6 +66,15 @@ CefRect TflWindowDelegate::GetInitialBounds(CefRefPtr<CefWindow> window) {
     return CefRect(0, 0, config_.width, config_.height);
 }
 
+bool TflWindowDelegate::GetLinuxWindowProperties(
+    CefRefPtr<CefWindow> window,
+    CefLinuxWindowProperties& properties) {
+    CefString(&properties.wayland_app_id) = "tfl";
+    CefString(&properties.wm_class_class) = "tfl";
+    CefString(&properties.wm_class_name) = "tfl";
+    return true;
+}
+
 // --- TflBrowserViewDelegate ---
 
 TflBrowserViewDelegate::TflBrowserViewDelegate(const TflConfig& config)

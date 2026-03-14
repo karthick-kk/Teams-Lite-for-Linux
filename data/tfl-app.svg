@@ -1,64 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
-    <!-- Main person body gradient (lighter purple) -->
-    <linearGradient id="bodyMain" x1="0" y1="0" x2="0.3" y2="1">
-      <stop offset="0%" stop-color="#b8a5d4"/>
-      <stop offset="100%" stop-color="#8b7aad"/>
-    </linearGradient>
-    <!-- Small person body gradient (darker purple) -->
-    <linearGradient id="bodySmall" x1="0" y1="0" x2="0.3" y2="1">
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
       <stop offset="0%" stop-color="#7b6ba0"/>
       <stop offset="100%" stop-color="#5b4d80"/>
     </linearGradient>
-    <!-- Main person head gradient -->
-    <linearGradient id="headMain" x1="0.3" y1="0" x2="0.7" y2="1">
+    <linearGradient id="bodyMain" x1="0" y1="0" x2="0.3" y2="1">
       <stop offset="0%" stop-color="#c4b3db"/>
       <stop offset="100%" stop-color="#9a8abb"/>
     </linearGradient>
-    <!-- Small person head gradient -->
-    <linearGradient id="headSmall" x1="0.3" y1="0" x2="0.7" y2="1">
-      <stop offset="0%" stop-color="#8070a8"/>
+    <linearGradient id="bodySmall" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#8b7aad"/>
       <stop offset="100%" stop-color="#6254a7"/>
     </linearGradient>
-    <!-- Card gradient -->
+    <linearGradient id="headMain" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#d4c8e8"/>
+      <stop offset="100%" stop-color="#a898c5"/>
+    </linearGradient>
+    <linearGradient id="headSmall" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#9080b8"/>
+      <stop offset="100%" stop-color="#7264a7"/>
+    </linearGradient>
     <linearGradient id="card" x1="0" y1="0" x2="0.4" y2="1">
       <stop offset="0%" stop-color="#a09ab0"/>
       <stop offset="50%" stop-color="#807a90"/>
       <stop offset="100%" stop-color="#6e6880"/>
     </linearGradient>
-    <!-- Card glass highlight -->
     <linearGradient id="cardHighlight" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="white" stop-opacity="0.35"/>
-      <stop offset="50%" stop-color="white" stop-opacity="0.08"/>
+      <stop offset="0%" stop-color="white" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="white" stop-opacity="0.05"/>
       <stop offset="100%" stop-color="white" stop-opacity="0"/>
     </linearGradient>
-    <!-- Shadow filter -->
-    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.2"/>
-    </filter>
-    <filter id="shadowSmall" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.15"/>
+    <filter id="shadow">
+      <feDropShadow dx="1" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.25"/>
     </filter>
   </defs>
 
+  <!-- Rounded square background -->
+  <rect width="256" height="256" rx="48" fill="url(#bg)"/>
+
   <!-- Main person (behind, lighter purple) -->
-  <!-- Body -->
-  <path d="M90,130 C90,130 90,108 128,108 C166,108 166,130 166,130 L166,210 C166,224 156,234 142,234 L114,234 C100,234 90,224 90,210 Z"
+  <circle cx="138" cy="58" r="30" fill="url(#headMain)" filter="url(#shadow)"/>
+  <path d="M100,118 C100,118 100,98 138,98 C176,98 176,118 176,118 L176,190 C176,202 168,210 156,210 L120,210 C108,210 100,202 100,190 Z"
         fill="url(#bodyMain)" filter="url(#shadow)"/>
-  <!-- Head -->
-  <circle cx="128" cy="72" r="34" fill="url(#headMain)" filter="url(#shadowSmall)"/>
 
   <!-- Small person (right, darker purple) -->
-  <!-- Body -->
-  <path d="M168,148 C168,148 168,132 196,132 C224,132 224,148 224,148 L224,210 C224,220 218,226 208,226 L184,226 C174,226 168,220 168,210 Z"
+  <circle cx="198" cy="88" r="22" fill="url(#headSmall)" filter="url(#shadow)"/>
+  <path d="M172,138 C172,138 172,122 198,122 C224,122 224,138 224,138 L224,196 C224,206 218,212 210,212 L186,212 C178,212 172,206 172,196 Z"
         fill="url(#bodySmall)" filter="url(#shadow)"/>
-  <!-- Head -->
-  <circle cx="196" cy="102" r="24" fill="url(#headSmall)" filter="url(#shadowSmall)"/>
 
-  <!-- Card with T (front, overlapping) -->
-  <rect x="20" y="100" width="120" height="120" rx="20" fill="url(#card)" filter="url(#shadow)"/>
-  <!-- Glass highlight on card -->
-  <rect x="20" y="100" width="120" height="60" rx="20" fill="url(#cardHighlight)"/>
-  <!-- Letter T -->
-  <path d="M52,138 L52,152 L70,152 L70,196 L90,196 L90,152 L108,152 L108,138 Z" fill="white" opacity="0.9"/>
+  <!-- Card with T (front) -->
+  <rect x="18" y="88" width="112" height="112" rx="18" fill="url(#card)" filter="url(#shadow)"/>
+  <rect x="18" y="88" width="112" height="56" rx="18" fill="url(#cardHighlight)"/>
+  <path d="M46,124 L46,138 L62,138 L62,178 L80,178 L80,138 L96,138 L96,124 Z" fill="white" opacity="0.92"/>
 </svg>

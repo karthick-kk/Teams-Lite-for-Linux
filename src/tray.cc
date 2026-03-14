@@ -55,11 +55,12 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
     if (len > 0) {
         exe_path[len] = '\0';
         std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
-        // Check next to binary first, then ../data/, then source data/
+        // Check next to binary, ../data/, ../share/icons/, and system icon path
         for (const auto& candidate : {
             exe_dir + "/tfl.svg",
             exe_dir + "/../data/tfl.svg",
             exe_dir + "/../share/icons/tfl.svg",
+            std::string("/usr/share/icons/hicolor/scalable/apps/tfl.svg"),
         }) {
             if (std::filesystem::exists(candidate)) {
                 icon_path = std::filesystem::canonical(candidate).string();
