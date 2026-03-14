@@ -106,6 +106,7 @@ int main(int argc, char* argv[]) {
     CefRunMessageLoop();
 
     // Release all CEF refs before shutdown
+    browser_view = nullptr;
     client = nullptr;
     bv_delegate = nullptr;
     app = nullptr;
