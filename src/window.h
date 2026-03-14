@@ -19,6 +19,8 @@ public:
     bool CanClose(CefRefPtr<CefWindow> window) override;
     CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override;
     bool IsFrameless(CefRefPtr<CefWindow> window) override { return true; }
+    bool GetLinuxWindowProperties(CefRefPtr<CefWindow> window,
+                                  CefLinuxWindowProperties& properties) override;
 
 private:
     CefRefPtr<CefBrowserView> browser_view_;
