@@ -42,8 +42,9 @@ run_job() {
         -j "$job_name" \
         --artifact-server-path "$BUILD_DIR" \
         -W .github/workflows/build.yml \
-        --env APP_VERSION=0.1.0 \
-        --env CEF_DIR=/tmp/cef || true
+        --env APP_VERSION=1.0.0 \
+        --env CEF_DIR=/tmp/cef \
+        -P ubuntu-24.04=catthehacker/ubuntu:act-24.04 || true
 
     # Extract package from container (act leaves it running/stopped)
     local container_image="${PKG_CONTAINERS[$job_name]}"
