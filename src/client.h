@@ -127,11 +127,15 @@ public:
 
     bool IsClosing() const { return is_closing_; }
 
+    // Inject JavaScript into the current Teams frame (used by idle monitor)
+    void InjectJS(const char* js);
+
 private:
     TflConfig config_;
     bool is_closing_ = false;
     int last_badge_ = 0;
     std::list<CefRefPtr<CefBrowser>> browsers_;
+    CefRefPtr<CefFrame> teams_frame_;  // main Teams frame for JS injection
 
     IMPLEMENT_REFCOUNTING(TflClient);
     DISALLOW_COPY_AND_ASSIGN(TflClient);

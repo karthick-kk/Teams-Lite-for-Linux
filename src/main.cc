@@ -2,6 +2,7 @@
 #include "client.h"
 #include "window.h"
 #include "config.h"
+#include "idle.h"
 #include "notifications.h"
 #include "openh264.h"
 #include "include/cef_app.h"
@@ -101,9 +102,15 @@ int main(int argc, char* argv[]) {
     CefWindow::CreateTopLevelWindow(
         new TflWindowDelegate(browser_view, config));
 
+    // Start idle-aware presence monitor
+    idle_monitor_start(config.idle_timeout, [client](const char* js) {
+        client->InjectJS(js);
+    });
+
     fprintf(stderr, "[tfl] Browser loading: %s\n", config.url.c_str());
 
     CefRunMessageLoop();
+    idle_monitor_stop();
 
     // Release all CEF refs before shutdown
     browser_view = nullptr;

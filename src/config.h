@@ -14,6 +14,7 @@ struct TflConfig {
     bool enable_dev_tools = false;
     bool minimized_to_tray = false;
     bool close_to_tray = true;  // X button hides to tray instead of quitting
+    int idle_timeout = 300;          // seconds before allowing "Away" (0 = always available)
 };
 
 TflConfig load_config();
