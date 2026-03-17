@@ -176,6 +176,9 @@ void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
     std::string url = frame->GetURL().ToString();
     if (!is_teams_domain(url)) return;
 
+    // Track the main Teams frame for idle monitor JS injection
+    teams_frame_ = frame;
+
     // Inject visibility override to prevent "Away" status when window is unfocused
     frame->ExecuteJavaScript(idle_get_visibility_override_js(), url, 0);
 
@@ -316,6 +319,14 @@ bool TflClient::OnBeforeUnloadDialog(CefRefPtr<CefBrowser> browser,
     // Auto-accept "leave page?" dialogs
     callback->Continue(true, CefString());
     return true;
+}
+
+// --- JS Injection (for idle monitor) ---
+
+void TflClient::InjectJS(const char* js) {
+    if (teams_frame_ && teams_frame_->IsValid()) {
+        teams_frame_->ExecuteJavaScript(js, teams_frame_->GetURL(), 0);
+    }
 }
 
 // --- Keyboard ---

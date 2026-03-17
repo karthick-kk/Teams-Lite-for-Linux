@@ -49,6 +49,7 @@ static void parse_config_file(const std::string& path, TflConfig& cfg) {
         else if (key == "close_to_tray") cfg.close_to_tray = (val == "true" || val == "1");
         else if (key == "x") cfg.x = std::atoi(val.c_str());
         else if (key == "y") cfg.y = std::atoi(val.c_str());
+        else if (key == "idle_timeout") cfg.idle_timeout = std::atoi(val.c_str());
     }
 }
 
@@ -74,7 +75,11 @@ static void write_default_config(const std::string& path) {
          << "# close_to_tray = true\n"
          << "\n"
          << "# Enable developer tools (F12)\n"
-         << "# dev_tools = false\n";
+         << "# dev_tools = false\n"
+         << "\n"
+         << "# Idle timeout in seconds before allowing \"Away\" status\n"
+         << "# Set to 0 to always keep Available\n"
+         << "# idle_timeout = 300\n";
 }
 
 TflConfig load_config() {
@@ -112,6 +117,7 @@ TflConfig load_config() {
     if (const char* w = std::getenv("TFL_WIDTH")) cfg.width = std::atoi(w);
     if (const char* h = std::getenv("TFL_HEIGHT")) cfg.height = std::atoi(h);
     if (std::getenv("TFL_DEV_TOOLS")) cfg.enable_dev_tools = true;
+    if (const char* t = std::getenv("TFL_IDLE_TIMEOUT")) cfg.idle_timeout = std::atoi(t);
 
     // Load saved window state (overrides config width/height)
     std::string state_path = cfg.config_dir + "/window-state";
