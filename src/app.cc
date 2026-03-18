@@ -14,7 +14,7 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitchWithValue("enable-features",
         "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
         "VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL,"
-        "WebRTCPipeWireCapturer");
+        "WebRTCPipeWireCapturer,WebRtcUnifiedPlanByDefault");
 
     // Disable H.264 simulcast — OpenH264 only supports single layer encoding
     command_line->AppendSwitchWithValue("force-fieldtrials",

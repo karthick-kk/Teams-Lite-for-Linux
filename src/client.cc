@@ -2,6 +2,7 @@
 #include "tray.h"
 #include "idle.h"
 #include "notifications.h"
+#include "webrtc_fix.h"
 #include "include/cef_app.h"
 #include "include/views/cef_browser_view.h"
 #include <cstdio>
@@ -206,6 +207,9 @@ void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
             fprintf(stderr, "[tfl] Custom CSS injected from %s\n", css_path.c_str());
         }
     }
+
+    // Inject WebRTC screen share fix (monitors tracks, restarts ICE if needed)
+    frame->ExecuteJavaScript(webrtc_get_screenshare_fix_js(), url, 0);
 }
 
 // --- Display ---
