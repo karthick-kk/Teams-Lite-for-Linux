@@ -11,16 +11,34 @@
 #include <sstream>
 #include <vector>
 
+// Extract hostname from URL (e.g. "https://foo.bar.com/path?q=1" -> "foo.bar.com")
+static std::string get_hostname(const std::string& url) {
+    auto scheme_end = url.find("://");
+    if (scheme_end == std::string::npos) return "";
+    auto host_start = scheme_end + 3;
+    auto host_end = url.find_first_of(":/?#", host_start);
+    if (host_end == std::string::npos) host_end = url.size();
+    return url.substr(host_start, host_end - host_start);
+}
+
+static bool ends_with(const std::string& str, const std::string& suffix) {
+    if (suffix.size() > str.size()) return false;
+    return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
 static bool is_teams_domain(const std::string& url) {
-    return url.find("teams.cloud.microsoft") != std::string::npos ||
-           url.find("teams.microsoft.com") != std::string::npos ||
-           url.find("teams.live.com") != std::string::npos ||
-           url.find("login.microsoftonline.com") != std::string::npos ||
-           url.find("login.live.com") != std::string::npos ||
-           url.find("login.microsoft.com") != std::string::npos ||
-           url.find("microsoft.com/devicelogin") != std::string::npos ||
-           url.find("aadcdn.msftauth.net") != std::string::npos ||
-           url.find("aadcdn.msauth.net") != std::string::npos;
+    std::string host = get_hostname(url);
+    return ends_with(host, "teams.cloud.microsoft") ||
+           ends_with(host, "teams.microsoft.com") ||
+           ends_with(host, "teams.live.com") ||
+           ends_with(host, "teams.cdn.office.net") ||
+           ends_with(host, ".office.com") ||
+           ends_with(host, "login.microsoftonline.com") ||
+           ends_with(host, "login.live.com") ||
+           ends_with(host, "login.microsoft.com") ||
+           ends_with(host, "microsoftonline.com") ||
+           ends_with(host, "aadcdn.msftauth.net") ||
+           ends_with(host, "aadcdn.msauth.net");
 }
 
 TflClient::TflClient(const TflConfig& config) : config_(config) {}
@@ -66,14 +84,50 @@ bool TflClient::OnBeforePopup(
     CefRefPtr<CefDictionaryValue>& extra_info,
     bool* no_javascript_access) {
 
-    // Load popups in the main browser instead of opening new windows
-    // Exception: allow OAuth popups that need separate windows
     std::string url = target_url.ToString();
+
+    // Detect Teams safelinks — extract the real URL and open externally
+    std::string host = get_hostname(url);
+    if (host.find("teams.cdn.office.net") != std::string::npos &&
+        url.find("safelinks") != std::string::npos) {
+        // Extract url= parameter
+        auto pos = url.find("url=");
+        if (pos != std::string::npos) {
+            pos += 4;
+            auto end = url.find("&", pos);
+            std::string encoded = (end != std::string::npos)
+                ? url.substr(pos, end - pos) : url.substr(pos);
+            // URL-decode
+            std::string decoded;
+            for (size_t i = 0; i < encoded.size(); i++) {
+                if (encoded[i] == '%' && i + 2 < encoded.size()) {
+                    int hi = 0, lo = 0;
+                    if (sscanf(encoded.c_str() + i + 1, "%1x%1x", &hi, &lo) == 2) {
+                        decoded += (char)((hi << 4) | lo);
+                        i += 2;
+                        continue;
+                    }
+                } else if (encoded[i] == '+') {
+                    decoded += ' ';
+                    continue;
+                }
+                decoded += encoded[i];
+            }
+            if (!decoded.empty()) {
+                std::string cmd = "xdg-open '" + decoded + "' &";
+                system(cmd.c_str());
+                fprintf(stderr, "[tfl] Safelink opened: %s\n", decoded.c_str());
+                return true;
+            }
+        }
+    }
+
+    // Teams-internal popups (OAuth, etc.) — allow in CEF
     if (is_teams_domain(url)) {
         return false;
     }
 
-    // Open external links in default browser
+    // Other external links — open in default browser
     std::string cmd = "xdg-open '" + url + "' &";
     system(cmd.c_str());
     return true;  // cancel popup
@@ -254,6 +308,38 @@ void TflClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& ti
 }
 
 // --- Request ---
+bool TflClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
+                               CefRefPtr<CefFrame> frame,
+                               CefRefPtr<CefRequest> request,
+                               bool user_gesture,
+                               bool is_redirect) {
+    if (!frame->IsMain()) return false;
+
+    std::string url = request->GetURL().ToString();
+    if (is_teams_domain(url)) return false;
+
+    // External URL clicked by user — open in default browser
+    std::string cmd = "xdg-open '" + url + "' &";
+    system(cmd.c_str());
+    fprintf(stderr, "[tfl] External link opened: %s\n", url.c_str());
+    return true;  // cancel navigation in CEF
+}
+
+bool TflClient::OnOpenURLFromTab(CefRefPtr<CefBrowser> browser,
+                                 CefRefPtr<CefFrame> frame,
+                                 const CefString& target_url,
+                                 cef_window_open_disposition_t target_disposition,
+                                 bool user_gesture) {
+    std::string url = target_url.ToString();
+    if (is_teams_domain(url)) return false;
+
+    // External URL (e.g. ctrl+click, middle-click) — open in default browser
+    std::string cmd = "xdg-open '" + url + "' &";
+    system(cmd.c_str());
+    fprintf(stderr, "[tfl] External link opened (tab): %s\n", url.c_str());
+    return true;  // cancel navigation in CEF
+}
+
 
 bool TflClient::OnCertificateError(
     CefRefPtr<CefBrowser> browser,
