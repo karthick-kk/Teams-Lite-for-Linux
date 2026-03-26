@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <functional>
 #include <filesystem>
+#include <fstream>
 #include <unistd.h>
 
 static AppIndicator* g_indicator = nullptr;
@@ -48,14 +49,13 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
     g_browser = browser;
     g_window = window;
 
-    // Find icon path relative to executable
+    // Find the source SVG icon
     char exe_path[4096];
-    std::string icon_path;
+    std::string icon_svg_path;
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
     if (len > 0) {
         exe_path[len] = '\0';
         std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
-        // Check next to binary, ../data/, ../share/icons/, and system icon path
         for (const auto& candidate : {
             exe_dir + "/tfl.svg",
             exe_dir + "/../data/tfl.svg",
@@ -63,24 +63,55 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
             std::string("/usr/share/icons/hicolor/scalable/apps/tfl.svg"),
         }) {
             if (std::filesystem::exists(candidate)) {
-                icon_path = std::filesystem::canonical(candidate).string();
+                icon_svg_path = std::filesystem::canonical(candidate).string();
                 break;
             }
         }
     }
 
-    if (icon_path.empty()) {
-        // Fallback: use icon name from theme
+    if (icon_svg_path.empty()) {
+        // No icon found — use fallback icon name from system theme
         g_indicator = app_indicator_new(
             "tfl-teams-for-linux", "teams-for-linux",
             APP_INDICATOR_CATEGORY_COMMUNICATIONS);
     } else {
-        // Use icon from file path — appindicator needs dir + icon name (no extension)
-        std::string icon_dir = std::filesystem::path(icon_path).parent_path().string();
-        g_indicator = app_indicator_new_with_path(
+        // Build a proper hicolor icon theme in cache dir so the DE picks the right size
+        const char* home = std::getenv("HOME");
+        const char* xdg_cache = std::getenv("XDG_CACHE_HOME");
+        std::string cache_dir = (xdg_cache && xdg_cache[0])
+            ? std::string(xdg_cache) + "/tfl"
+            : std::string(home ? home : "/tmp") + "/.cache/tfl";
+
+        std::string theme_base = cache_dir + "/tray-icons";
+        std::string scalable_dir = theme_base + "/hicolor/scalable/apps";
+        std::filesystem::create_directories(scalable_dir);
+
+        // Copy SVG into the theme
+        std::string dest_svg = scalable_dir + "/tfl.svg";
+        std::filesystem::copy_file(icon_svg_path, dest_svg,
+            std::filesystem::copy_options::overwrite_existing);
+
+        // Write index.theme so the icon lookup works
+        std::string index_path = theme_base + "/hicolor/index.theme";
+        std::ofstream index(index_path);
+        if (index.is_open()) {
+            index << "[Icon Theme]\n"
+                  << "Name=tfl\n"
+                  << "Comment=TFL tray icons\n"
+                  << "Directories=scalable/apps\n"
+                  << "\n"
+                  << "[scalable/apps]\n"
+                  << "Size=48\n"
+                  << "MinSize=16\n"
+                  << "MaxSize=256\n"
+                  << "Type=Scalable\n"
+                  << "Context=Applications\n";
+        }
+
+        g_indicator = app_indicator_new(
             "tfl-teams-for-linux", "tfl",
-            APP_INDICATOR_CATEGORY_COMMUNICATIONS,
-            icon_dir.c_str());
+            APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+        app_indicator_set_icon_theme_path(g_indicator, theme_base.c_str());
     }
 
     app_indicator_set_status(g_indicator, APP_INDICATOR_STATUS_ACTIVE);
