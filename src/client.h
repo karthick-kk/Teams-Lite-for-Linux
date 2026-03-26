@@ -46,7 +46,7 @@ public:
                        int popup_id,
                        const CefString& target_url,
                        const CefString& target_frame_name,
-                       CefLifeSpanHandler::WindowOpenDisposition target_disposition,
+                       cef_window_open_disposition_t target_disposition,
                        bool user_gesture,
                        const CefPopupFeatures& popupFeatures,
                        CefWindowInfo& windowInfo,
@@ -59,6 +59,18 @@ public:
     void OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) override;
 
     // CefRequestHandler
+    bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
+                    CefRefPtr<CefFrame> frame,
+                    CefRefPtr<CefRequest> request,
+                    bool user_gesture,
+                    bool is_redirect) override;
+
+    bool OnOpenURLFromTab(CefRefPtr<CefBrowser> browser,
+                          CefRefPtr<CefFrame> frame,
+                          const CefString& target_url,
+                          cef_window_open_disposition_t target_disposition,
+                          bool user_gesture) override;
+
     bool OnCertificateError(CefRefPtr<CefBrowser> browser,
                             cef_errorcode_t cert_error,
                             const CefString& request_url,
