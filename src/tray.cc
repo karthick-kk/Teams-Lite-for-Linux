@@ -57,10 +57,10 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
         std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
         // Check next to binary, ../data/, ../share/icons/, and system icon path
         for (const auto& candidate : {
-            exe_dir + "/tfl-tray.png",
-            exe_dir + "/../data/tfl-tray.png",
-            exe_dir + "/../share/icons/tfl-tray.png",
-            std::string("/usr/share/icons/hicolor/48x48/apps/tfl-tray.png"),
+            exe_dir + "/tfl.svg",
+            exe_dir + "/../data/tfl.svg",
+            exe_dir + "/../share/icons/tfl.svg",
+            std::string("/usr/share/icons/hicolor/scalable/apps/tfl.svg"),
         }) {
             if (std::filesystem::exists(candidate)) {
                 icon_path = std::filesystem::canonical(candidate).string();
@@ -78,7 +78,7 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
         // Use icon from file path — appindicator needs dir + icon name (no extension)
         std::string icon_dir = std::filesystem::path(icon_path).parent_path().string();
         g_indicator = app_indicator_new_with_path(
-            "tfl-teams-for-linux", "tfl-tray",
+            "tfl-teams-for-linux", "tfl",
             APP_INDICATOR_CATEGORY_COMMUNICATIONS,
             icon_dir.c_str());
     }
