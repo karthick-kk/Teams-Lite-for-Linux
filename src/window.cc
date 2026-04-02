@@ -1,5 +1,6 @@
 #include "window.h"
 #include "tray.h"
+#include "theme.h"
 #include "notifications.h"
 #include "config.h"
 #include <cstdio>
@@ -7,8 +8,10 @@
 // --- TflWindowDelegate ---
 
 TflWindowDelegate::TflWindowDelegate(CefRefPtr<CefBrowserView> browser_view,
-                                     const TflConfig& config)
-    : browser_view_(browser_view), config_(config) {}
+                                     const TflConfig& config,
+                                     CefRefPtr<TflClient> client,
+                                     const std::vector<std::string>& themes)
+    : browser_view_(browser_view), config_(config), client_(client), themes_(themes) {}
 
 void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
     window->AddChildView(browser_view_);
@@ -18,7 +21,11 @@ void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
     // Init tray after browser is ready
     CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
     if (browser) {
-        tray_init(browser, window);
+        CefRefPtr<TflClient> cl = client_;
+        tray_init(browser, window, config_, themes_,
+            [cl](const std::string& theme_name) {
+                if (cl) cl->ApplyTheme(theme_name);
+            });
     }
 
     // Re-show window when notification is clicked
@@ -36,6 +43,7 @@ void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
 void TflWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window) {
     tray_shutdown();
     browser_view_ = nullptr;
+    client_ = nullptr;
     fprintf(stderr, "[tfl] Window destroyed\n");
 }
 

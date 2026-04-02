@@ -142,6 +142,9 @@ public:
     // Inject JavaScript into the current Teams frame (used by idle monitor)
     void InjectJS(const char* js);
 
+    // Apply a theme by name (called from tray menu)
+    void ApplyTheme(const std::string& theme_name);
+
 private:
     TflConfig config_;
     bool is_closing_ = false;
