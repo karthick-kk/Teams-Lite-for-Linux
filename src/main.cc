@@ -4,6 +4,7 @@
 #include "config.h"
 #include "idle.h"
 #include "notifications.h"
+#include "theme.h"
 #include "openh264.h"
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
@@ -99,8 +100,9 @@ int main(int argc, char* argv[]) {
     CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
         client, config.url, browser_settings, nullptr, nullptr, bv_delegate);
 
+    auto available_themes = theme_list_available();
     CefWindow::CreateTopLevelWindow(
-        new TflWindowDelegate(browser_view, config));
+        new TflWindowDelegate(browser_view, config, client, available_themes));
 
     // Start idle-aware presence monitor
     idle_monitor_start(config.idle_timeout, [client](const char* js) {

@@ -1,0 +1,89 @@
+/* TFL Theme: Catppuccin Mocha
+ * Warm dark palette with pastel accents.
+ * https://github.com/catppuccin/catppuccin
+ */
+
+:root {
+  /* Brand / Accent — Catppuccin Mauve */
+  --colorBrandBackground: #cba6f7;
+  --colorBrandBackgroundHover: #b48ef0;
+  --colorBrandBackgroundPressed: #9d76e8;
+  --colorBrandBackgroundSelected: #cba6f7;
+  --colorBrandForeground1: #cba6f7;
+  --colorBrandForeground2: #b4befe;
+  --colorBrandForegroundLink: #89b4fa;
+  --colorBrandForegroundLinkHover: #b4befe;
+  --colorBrandForegroundLinkPressed: #74c7ec;
+  --colorBrandStroke1: #cba6f7;
+  --colorBrandStroke2: #b48ef0;
+  --colorBrandStroke2Contrast: #cba6f7;
+
+  /* Neutral Backgrounds — Catppuccin Mocha base */
+  --colorNeutralBackground1: #1e1e2e;
+  --colorNeutralBackground1Hover: #313244;
+  --colorNeutralBackground1Pressed: #181825;
+  --colorNeutralBackground1Selected: #313244;
+  --colorNeutralBackground2: #181825;
+  --colorNeutralBackground3: #11111b;
+  --colorNeutralBackground4: #11111b;
+  --colorNeutralBackground5: #11111b;
+  --colorNeutralBackground6: #11111b;
+  --colorSubtleBackgroundHover: #313244;
+  --colorSubtleBackgroundPressed: #181825;
+  --colorSubtleBackgroundSelected: #313244;
+
+  /* Neutral Foreground — Catppuccin text */
+  --colorNeutralForeground1: #cdd6f4;
+  --colorNeutralForeground2: #bac2de;
+  --colorNeutralForeground3: #a6adc8;
+  --colorNeutralStroke1: #45475a;
+  --colorNeutralStroke2: #313244;
+  --colorNeutralStroke3: #313244;
+
+  /* TFL custom: sent message bubble background */
+  --tflBubbleBackground: #2A2040;
+}
+
+/* Override Teams purple/blue accent */
+svg [fill="#6264a7"], svg [fill="#6264A7"],
+svg [fill="#5b5fc7"], svg [fill="#5B5FC7"],
+svg [fill="#444791"] {
+  fill: #cba6f7 !important;
+}
+
+/* Links */
+a { color: #89b4fa !important; }
+a:hover { color: #b4befe !important; }
+
+/* Primary buttons */
+button[class*="primary"],
+[class*="fui-Button"][class*="primary"] {
+  background: #cba6f7 !important;
+  border-color: #cba6f7 !important;
+  color: #1e1e2e !important;
+}
+button[class*="primary"]:hover {
+  background: #b48ef0 !important;
+}
+
+/* Scrollbar — Catppuccin surface */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #45475a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #585b70; }
+
+/* Sent message bubbles */
+[style*="background-color: rgb(61, 62, 120)"],
+[style*="background-color: rgb(68, 71, 145)"],
+[style*="background-color: rgb(43, 43, 64)"] {
+  background-color: #2A2040 !important;
+}
+
+/* Hover/active nav */
+[role="navigation"] [aria-selected="true"],
+[role="navigation"] [aria-selected="true"] *,
+[role="tablist"] [aria-selected="true"],
+[role="tablist"] [aria-selected="true"] * {
+  color: #cba6f7 !important;
+  fill: #cba6f7 !important;
+}

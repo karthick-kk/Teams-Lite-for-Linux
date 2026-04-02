@@ -1,0 +1,115 @@
+/* TFL Theme: Yaru Dark
+ * Ubuntu Yaru dark palette — focuses on accent color (orange) and backgrounds.
+ * CSS variables are force-applied via JS timer for Fluent UI components.
+ * Element selectors handle everything else.
+ */
+
+:root {
+  --colorBrandBackground: #E95420;
+  --colorBrandBackgroundHover: #D44B1C;
+  --colorBrandBackgroundPressed: #B8400F;
+  --colorBrandBackgroundSelected: #E95420;
+  --colorBrandForeground1: #F18A5F;
+  --colorBrandForeground2: #E95420;
+  --colorBrandForegroundLink: #F18A5F;
+  --colorBrandForegroundLinkHover: #F5A07A;
+  --colorBrandForegroundLinkPressed: #D44B1C;
+  --colorBrandStroke1: #E95420;
+  --colorBrandStroke2: #D44B1C;
+  --colorBrandStroke2Contrast: #F18A5F;
+  --colorNeutralBackground1: #2D2D2D;
+  --colorNeutralBackground1Hover: #363636;
+  --colorNeutralBackground1Pressed: #252525;
+  --colorNeutralBackground1Selected: #333333;
+  --colorNeutralBackground2: #272727;
+  --colorNeutralBackground3: #1D1D1D;
+  --colorNeutralBackground4: #191919;
+  --colorNeutralBackground5: #141414;
+  --colorNeutralBackground6: #111111;
+  --colorSubtleBackgroundHover: #363636;
+  --colorSubtleBackgroundPressed: #252525;
+  --colorSubtleBackgroundSelected: #333333;
+  --colorNeutralForeground1: #F7F7F7;
+  --colorNeutralForeground2: #C8C8C8;
+  --colorNeutralForeground3: #A0A0A0;
+  --colorNeutralStroke1: #454545;
+  --colorNeutralStroke2: #3A3A3A;
+  --colorNeutralStroke3: #303030;
+
+  /* TFL custom: sent message bubble background */
+  --tflBubbleBackground: #3B1035;
+}
+
+/* === Override Teams purple/blue accent everywhere === */
+
+/* SVG fills that use the Teams brand color */
+svg [fill="#6264a7"], svg [fill="#6264A7"],
+svg [fill="#5b5fc7"], svg [fill="#5B5FC7"],
+svg [fill="#444791"], svg [fill="#444791"] {
+  fill: #E95420 !important;
+}
+
+/* Any element with inline blue/purple color */
+[style*="color: rgb(98, 100, 167)"],
+[style*="color: rgb(91, 95, 199)"],
+[style*="color: rgb(68, 71, 145)"] {
+  color: #E95420 !important;
+}
+
+[style*="background-color: rgb(98, 100, 167)"],
+[style*="background-color: rgb(91, 95, 199)"],
+[style*="background: rgb(98, 100, 167)"],
+[style*="background: rgb(91, 95, 199)"] {
+  background: #E95420 !important;
+}
+
+/* Fluent UI brand-colored elements */
+[class*="fui-"][style*="background-color: var(--colorBrandBackground)"],
+[class*="fui-"][style*="color: var(--colorBrandForeground"] {
+  /* These will pick up our overridden CSS variables automatically */
+}
+
+/* Links */
+a { color: #F18A5F !important; }
+a:hover { color: #F5A07A !important; }
+
+/* Primary buttons */
+button[class*="primary"],
+[class*="fui-Button"][class*="primary"] {
+  background: #E95420 !important;
+  border-color: #E95420 !important;
+}
+button[class*="primary"]:hover {
+  background: #D44B1C !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #777; }
+
+/* Sent message bubbles — override blue/purple background */
+[style*="background-color: rgb(61, 62, 120)"],
+[style*="background-color: rgb(68, 71, 145)"],
+[style*="background-color: rgb(56, 57, 102)"],
+[style*="background-color: rgb(79, 82, 178)"],
+[style*="background-color: rgb(91, 95, 199)"] {
+  background-color: #7A3415 !important;
+}
+
+/* Hover states — override blue hover on nav icons and list items */
+/* Use Griffel atomic class patterns — these are the classes Teams generates */
+.f1jehi8h { color: #E95420 !important; }  /* color: rgb(127,133,245) */
+.f1hzsgrp { color: #E95420 !important; }  /* another brand color class */
+
+/* Active/selected nav items — force orange on any element inside nav-like containers */
+[role="navigation"] [aria-selected="true"],
+[role="navigation"] [aria-selected="true"] *,
+[role="navigation"] [aria-current="page"],
+[role="navigation"] [aria-current="page"] *,
+[role="tablist"] [aria-selected="true"],
+[role="tablist"] [aria-selected="true"] * {
+  color: #E95420 !important;
+  fill: #E95420 !important;
+}

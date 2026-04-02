@@ -32,6 +32,7 @@ add_executable(tfl
     src/idle.cc
     src/webrtc_fix.cc
     src/openh264.cc
+    src/theme.cc
 )
 
 target_include_directories(tfl PRIVATE
@@ -113,6 +114,7 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/tfl-launcher DESTINATION bin RENAME
 install(FILES data/tfl.desktop DESTINATION share/applications)
 install(FILES data/dev.tfl.teams-for-linux.appdata.xml DESTINATION share/metainfo)
 install(FILES data/tfl-app.svg DESTINATION share/icons/hicolor/scalable/apps)
+install(DIRECTORY data/themes DESTINATION ${TFL_INSTALL_LIBDIR})
 
 # Generate launcher script
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/tfl-launcher

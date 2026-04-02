@@ -13,6 +13,8 @@ static GtkWidget* g_menu = nullptr;
 static CefRefPtr<CefBrowser> g_browser;
 static CefRefPtr<CefWindow> g_window;
 static bool g_quit_requested = false;
+static TflConfig g_config;
+static ThemeChangeCallback g_theme_callback;
 
 // Helper to run a lambda on CEF's UI thread
 class CefLambdaTask : public CefTask {
@@ -36,7 +38,6 @@ static void on_show_activate(GtkMenuItem*, gpointer) {
 
 static void on_quit_activate(GtkMenuItem*, gpointer) {
     g_quit_requested = true;
-    // Close the window — CanClose will see quit_requested and return true
     CefRefPtr<CefWindow> win = g_window;
     if (win) {
         CefPostTask(TID_UI, new CefLambdaTask([win]() {
@@ -45,9 +46,34 @@ static void on_quit_activate(GtkMenuItem*, gpointer) {
     }
 }
 
-void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
+static void on_theme_activate(GtkCheckMenuItem* item, gpointer data) {
+    if (!gtk_check_menu_item_get_active(item)) return;
+
+    const char* theme_name = static_cast<const char*>(data);
+    std::string theme = theme_name ? theme_name : "none";
+
+    fprintf(stderr, "[tfl] Theme selected: %s\n", theme.c_str());
+
+    // Save to config
+    g_config.theme = theme;
+    save_theme(g_config, theme);
+
+    // Apply via callback on CEF UI thread
+    if (g_theme_callback) {
+        ThemeChangeCallback cb = g_theme_callback;
+        CefPostTask(TID_UI, new CefLambdaTask([cb, theme]() {
+            cb(theme);
+        }));
+    }
+}
+
+void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
+               const TflConfig& config, const std::vector<std::string>& themes,
+               ThemeChangeCallback on_theme_change) {
     g_browser = browser;
     g_window = window;
+    g_config = config;
+    g_theme_callback = std::move(on_theme_change);
 
     // Find the source SVG icon
     char exe_path[4096];
@@ -70,12 +96,10 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
     }
 
     if (icon_svg_path.empty()) {
-        // No icon found — use fallback icon name from system theme
         g_indicator = app_indicator_new(
             "tfl-teams-for-linux", "teams-for-linux",
             APP_INDICATOR_CATEGORY_COMMUNICATIONS);
     } else {
-        // Build a proper hicolor icon theme in cache dir so the DE picks the right size
         const char* home = std::getenv("HOME");
         const char* xdg_cache = std::getenv("XDG_CACHE_HOME");
         std::string cache_dir = (xdg_cache && xdg_cache[0])
@@ -86,12 +110,10 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
         std::string scalable_dir = theme_base + "/hicolor/scalable/apps";
         std::filesystem::create_directories(scalable_dir);
 
-        // Copy SVG into the theme
         std::string dest_svg = scalable_dir + "/tfl.svg";
         std::filesystem::copy_file(icon_svg_path, dest_svg,
             std::filesystem::copy_options::overwrite_existing);
 
-        // Write index.theme so the icon lookup works
         std::string index_path = theme_base + "/hicolor/index.theme";
         std::ofstream index(index_path);
         if (index.is_open()) {
@@ -119,13 +141,74 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
 
     g_menu = gtk_menu_new();
 
+    // Show
     GtkWidget* show_item = gtk_menu_item_new_with_label("Show");
     g_signal_connect(show_item, "activate", G_CALLBACK(on_show_activate), nullptr);
     gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), show_item);
 
-    GtkWidget* sep = gtk_separator_menu_item_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), sep);
+    // Separator
+    gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), gtk_separator_menu_item_new());
 
+    // Themes submenu
+    if (!themes.empty()) {
+        GtkWidget* themes_item = gtk_menu_item_new_with_label("Themes");
+        GtkWidget* themes_menu = gtk_menu_new();
+
+        GSList* group = nullptr;
+
+        // "Default" option (theme = none)
+        // We need stable strings for the callback data — use static storage
+        static std::string s_none = "none";
+        GtkWidget* default_item = gtk_radio_menu_item_new_with_label(group, "Default");
+        group = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(default_item));
+        if (config.theme == "none" || config.theme.empty()) {
+            gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(default_item), TRUE);
+        }
+        g_signal_connect(default_item, "toggled", G_CALLBACK(on_theme_activate),
+                         const_cast<char*>(s_none.c_str()));
+        gtk_menu_shell_append(GTK_MENU_SHELL(themes_menu), default_item);
+
+        // Separator in themes submenu
+        gtk_menu_shell_append(GTK_MENU_SHELL(themes_menu), gtk_separator_menu_item_new());
+
+        // Theme entries — store names in a static vector for stable pointers
+        static std::vector<std::string> s_theme_names;
+        s_theme_names = themes;
+
+        for (size_t i = 0; i < s_theme_names.size(); i++) {
+            // Make display name: "yaru-dark" -> "Yaru Dark"
+            std::string display = s_theme_names[i];
+            bool capitalize = true;
+            for (size_t j = 0; j < display.size(); j++) {
+                if (display[j] == '-') {
+                    display[j] = ' ';
+                    capitalize = true;
+                } else if (capitalize) {
+                    display[j] = toupper(display[j]);
+                    capitalize = false;
+                }
+            }
+
+            GtkWidget* item = gtk_radio_menu_item_new_with_label(group, display.c_str());
+            group = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(item));
+
+            if (config.theme == s_theme_names[i]) {
+                gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(item), TRUE);
+            }
+
+            g_signal_connect(item, "toggled", G_CALLBACK(on_theme_activate),
+                             const_cast<char*>(s_theme_names[i].c_str()));
+            gtk_menu_shell_append(GTK_MENU_SHELL(themes_menu), item);
+        }
+
+        gtk_menu_item_set_submenu(GTK_MENU_ITEM(themes_item), themes_menu);
+        gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), themes_item);
+
+        // Separator
+        gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), gtk_separator_menu_item_new());
+    }
+
+    // Quit
     GtkWidget* quit_item = gtk_menu_item_new_with_label("Quit");
     g_signal_connect(quit_item, "activate", G_CALLBACK(on_quit_activate), nullptr);
     gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), quit_item);
@@ -133,7 +216,7 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window) {
     gtk_widget_show_all(g_menu);
     app_indicator_set_menu(g_indicator, GTK_MENU(g_menu));
 
-    fprintf(stderr, "[tfl] Tray initialized\n");
+    fprintf(stderr, "[tfl] Tray initialized (themes: %zu available)\n", themes.size());
 }
 
 void tray_set_tooltip(const std::string& text) {
@@ -167,5 +250,6 @@ void tray_shutdown() {
     }
     g_browser = nullptr;
     g_window = nullptr;
+    g_theme_callback = nullptr;
     fprintf(stderr, "[tfl] Tray shutdown\n");
 }
