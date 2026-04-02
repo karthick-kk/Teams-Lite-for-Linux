@@ -14,7 +14,8 @@ struct TflConfig {
     bool enable_dev_tools = false;
     bool minimized_to_tray = false;
     bool close_to_tray = true;  // X button hides to tray instead of quitting
-    int idle_timeout = 300;          // seconds before allowing "Away" (0 = always available)
+    int idle_timeout = 300;
+    std::string theme = "none";      // theme name or "none" for Teams default          // seconds before allowing "Away" (0 = always available)
 };
 
 TflConfig load_config();
@@ -23,4 +24,7 @@ TflConfig load_config();
 void save_window_state(const TflConfig& config, int x, int y, int w, int h);
 
 // Try to acquire single-instance lock. Returns true if we're the only instance.
+// Save theme selection to config file
+void save_theme(const TflConfig& config, const std::string& theme);
+
 bool acquire_instance_lock(const std::string& config_dir);

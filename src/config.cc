@@ -50,6 +50,7 @@ static void parse_config_file(const std::string& path, TflConfig& cfg) {
         else if (key == "x") cfg.x = std::atoi(val.c_str());
         else if (key == "y") cfg.y = std::atoi(val.c_str());
         else if (key == "idle_timeout") cfg.idle_timeout = std::atoi(val.c_str());
+        else if (key == "theme") cfg.theme = val;
     }
 }
 
@@ -79,7 +80,10 @@ static void write_default_config(const std::string& path) {
          << "\n"
          << "# Idle timeout in seconds before allowing \"Away\" status\n"
          << "# Set to 0 to always keep Available\n"
-         << "# idle_timeout = 300\n";
+         << "# idle_timeout = 300\n"
+         << "\n"
+         << "# Theme (none = Teams default, yaru-dark, yaru-light)\n"
+         << "# theme = none\n";
 }
 
 TflConfig load_config() {
@@ -118,6 +122,7 @@ TflConfig load_config() {
     if (const char* h = std::getenv("TFL_HEIGHT")) cfg.height = std::atoi(h);
     if (std::getenv("TFL_DEV_TOOLS")) cfg.enable_dev_tools = true;
     if (const char* t = std::getenv("TFL_IDLE_TIMEOUT")) cfg.idle_timeout = std::atoi(t);
+    if (const char* th = std::getenv("TFL_THEME")) cfg.theme = th;
 
     // Load saved window state (overrides config width/height)
     std::string state_path = cfg.config_dir + "/window-state";
@@ -156,4 +161,44 @@ bool acquire_instance_lock(const std::string& config_dir) {
         return false;  // another instance holds the lock
     }
     return true;
+}
+
+void save_theme(const TflConfig& config, const std::string& theme) {
+    std::string config_path = config.config_dir + "/config";
+    std::string content;
+
+    // Read existing config
+    std::ifstream in(config_path);
+    if (in.is_open()) {
+        std::ostringstream ss;
+        ss << in.rdbuf();
+        content = ss.str();
+        in.close();
+    }
+
+    // Replace or append theme line
+    bool found = false;
+    std::istringstream stream(content);
+    std::ostringstream out;
+    std::string line;
+    while (std::getline(stream, line)) {
+        std::string trimmed = trim(line);
+        if (trimmed.find("theme") == 0 && trimmed.find('=') != std::string::npos) {
+            out << "theme = " << theme << "\n";
+            found = true;
+        } else if (trimmed == "# theme = none") {
+            out << "theme = " << theme << "\n";
+            found = true;
+        } else {
+            out << line << "\n";
+        }
+    }
+    if (!found) {
+        out << "\ntheme = " << theme << "\n";
+    }
+
+    std::ofstream file(config_path);
+    if (file.is_open()) {
+        file << out.str();
+    }
 }

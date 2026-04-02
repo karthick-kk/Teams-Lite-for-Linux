@@ -3,6 +3,7 @@
 #include "idle.h"
 #include "notifications.h"
 #include "webrtc_fix.h"
+#include "theme.h"
 #include "include/cef_app.h"
 #include "include/views/cef_browser_view.h"
 #include <cstdio>
@@ -85,6 +86,7 @@ bool TflClient::OnBeforePopup(
     bool* no_javascript_access) {
 
     std::string url = target_url.ToString();
+    fprintf(stderr, "[tfl] OnBeforePopup: host=%s url=%s (gesture=%d)\n", get_hostname(url).c_str(), url.substr(0, 120).c_str(), user_gesture);
 
     // Detect Teams safelinks — extract the real URL and open externally
     std::string host = get_hostname(url);
@@ -237,6 +239,14 @@ void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
     // Inject visibility override to prevent "Away" status when window is unfocused
     frame->ExecuteJavaScript(idle_get_visibility_override_js(), url, 0);
 
+    // Inject theme CSS (before custom.css so user overrides win)
+    if (config_.theme != "none" && !config_.theme.empty()) {
+        std::string theme_css = theme_load_css(config_.theme);
+        if (!theme_css.empty()) {
+            frame->ExecuteJavaScript(theme_get_inject_js(theme_css).c_str(), url, 0);
+            fprintf(stderr, "[tfl] Theme injected: %s\n", config_.theme.c_str());
+        }
+    }
     // Inject custom CSS from ~/.config/tfl/custom.css
     std::string css_path = config_.config_dir + "/custom.css";
     std::ifstream css_file(css_path);
@@ -413,9 +423,24 @@ bool TflClient::OnBeforeUnloadDialog(CefRefPtr<CefBrowser> browser,
 
 // --- JS Injection (for idle monitor) ---
 
+void TflClient::ApplyTheme(const std::string& theme_name) {
+    config_.theme = theme_name;
+    // Reload the page so OnLoadEnd fires fresh and injects the theme
+    // into the correct JS context
+    if (!browsers_.empty()) {
+        auto browser = browsers_.front();
+        browser->Reload();
+        fprintf(stderr, "[tfl] Theme changed to '%s' — reloading\n", theme_name.c_str());
+    }
+}
+
 void TflClient::InjectJS(const char* js) {
-    if (teams_frame_ && teams_frame_->IsValid()) {
-        teams_frame_->ExecuteJavaScript(js, teams_frame_->GetURL(), 0);
+    if (!browsers_.empty()) {
+        auto browser = browsers_.front();
+        auto frame = browser->GetMainFrame();
+        if (frame && frame->IsValid()) {
+            frame->ExecuteJavaScript(js, frame->GetURL(), 0);
+        }
     }
 }
 
