@@ -76,6 +76,8 @@ jobs:
           cp data/tfl.svg pkg/${PKG}/usr/share/icons/hicolor/scalable/apps/
           cp data/tfl-app.svg pkg/${PKG}/usr/share/icons/hicolor/scalable/apps/
 
+          cp -r data/themes pkg/${PKG}/usr/lib/tfl/
+
           cat > pkg/${PKG}/DEBIAN/control << 'EOF'
           Package: tfl
           Version: VERSION_PLACEHOLDER
@@ -162,6 +164,8 @@ jobs:
           mkdir -p ${DESTDIR}/usr/share/icons/hicolor/scalable/apps
           cp data/tfl.svg ${DESTDIR}/usr/share/icons/hicolor/scalable/apps/
           cp data/tfl-app.svg ${DESTDIR}/usr/share/icons/hicolor/scalable/apps/
+
+          cp -r data/themes ${DESTDIR}/usr/lib/tfl/
 
           cat > ~/rpmbuild/SPECS/tfl.spec << SPEC
           Name:           tfl
@@ -259,6 +263,8 @@ jobs:
           cp data/tfl.svg ${PKGDIR}/usr/share/icons/hicolor/scalable/apps/
           cp data/tfl-app.svg ${PKGDIR}/usr/share/icons/hicolor/scalable/apps/
 
+          cp -r data/themes ${PKGDIR}/usr/lib/tfl/
+
           PKG_SIZE=$(du -sb ${PKGDIR}/usr | cut -f1)
           cat > ${PKGDIR}/.PKGINFO << EOF
           pkgname = tfl
@@ -342,6 +348,8 @@ jobs:
           cp data/tfl.desktop ${PKGDIR}/
           cp LICENSE ${PKGDIR}/
           cp README.md ${PKGDIR}/
+
+          cp -r data/themes ${PKGDIR}/
 
           tar czf build/${PKGDIR}.tar.gz ${PKGDIR}/
 
