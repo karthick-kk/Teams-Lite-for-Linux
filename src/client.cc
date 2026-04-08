@@ -225,6 +225,27 @@ void TflClient::OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
 
 // --- Load ---
 
+void TflClient::OnLoadStart(CefRefPtr<CefBrowser> browser,
+                             CefRefPtr<CefFrame> frame,
+                             CefLoadHandler::TransitionType transition_type) {
+    if (!frame->IsMain()) return;
+
+    std::string url = frame->GetURL().ToString();
+    if (!is_teams_domain(url)) return;
+
+    // Inject insertRule hook BEFORE Teams' JS runs — this catches all Griffel
+    // CSS rules as they're inserted, rewriting brand colors inline.
+    if (config_.theme != "none" && !config_.theme.empty()) {
+        std::string theme_css = theme_load_css(config_.theme);
+        if (!theme_css.empty()) {
+            std::string hook_js = theme_get_hook_js(theme_css);
+            if (!hook_js.empty()) {
+                frame->ExecuteJavaScript(hook_js.c_str(), url, 0);
+            }
+        }
+    }
+}
+
 void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
                            CefRefPtr<CefFrame> frame,
                            int httpStatusCode) {

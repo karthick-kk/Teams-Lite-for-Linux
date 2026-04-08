@@ -66,6 +66,9 @@ int main(int argc, char* argv[]) {
     settings.remote_debugging_port = 9222;
     CefString(&settings.user_agent) = config.user_agent;
 
+    // Memory optimizations: limit background renderer priority
+    settings.background_color = 0;  // transparent — avoids extra compositing
+
     char exe_path[4096];
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
     std::string exe_dir;

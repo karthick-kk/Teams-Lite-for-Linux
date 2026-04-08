@@ -15,5 +15,8 @@ std::vector<std::string> theme_list_available();
 // Build JS to inject or replace the theme <style id="tfl-theme"> element
 std::string theme_get_inject_js(const std::string& css);
 
+// Build JS hook for CSSStyleSheet.insertRule — must run before page JS (OnLoadStart)
+std::string theme_get_hook_js(const std::string& css);
+
 // Build JS to remove the theme style element (revert to Teams default)
 std::string theme_get_remove_js();

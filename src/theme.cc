@@ -154,22 +154,64 @@ static std::string extract_non_var_css(const std::string& css) {
     return result;
 }
 
+// Helper to build the color map JS object string
+static std::string build_color_map_js(const std::string& css) {
+    auto vars = parse_css_vars(css);
+    std::string brand = "#E95420", brandHover = "#D44B1C", brandFg = "#F18A5F";
+    std::string bubbleBg = "#3B1035";
+    for (const auto& [name, value] : vars) {
+        if (name == "--colorBrandBackground") brand = value;
+        else if (name == "--colorBrandBackgroundHover") brandHover = value;
+        else if (name == "--colorBrandForeground1") brandFg = value;
+        else if (name == "--tflBubbleBackground") bubbleBg = value;
+    }
+    return "{"
+        "'rgb(127, 133, 245)':'" + brandFg + "',"
+        "'rgb(117, 121, 235)':'" + brandFg + "',"
+        "'rgb(146, 153, 247)':'" + brandFg + "',"
+        "'rgb(91, 95, 199)':'" + brand + "',"
+        "'rgb(79, 82, 178)':'" + brandHover + "',"
+        "'rgb(68, 71, 145)':'" + bubbleBg + "',"
+        "'rgb(61, 62, 120)':'" + bubbleBg + "',"
+        "'rgb(56, 57, 102)':'" + bubbleBg + "',"
+        "'rgb(43, 43, 64)':'" + bubbleBg + "',"
+        "'rgb(232, 235, 250)':'" + brandFg + "',"
+        "'rgb(98, 100, 167)':'" + brand + "'"
+        "}";
+}
+
+// Runs in OnLoadStart — before Teams' JS bootstraps
+std::string theme_get_hook_js(const std::string& css) {
+    std::string colorMapJs = build_color_map_js(css);
+    return "(function(){"
+           "var colorMap=" + colorMapJs + ";"
+           "var origInsertRule=CSSStyleSheet.prototype.insertRule;"
+           "CSSStyleSheet.prototype.insertRule=function(rule,index){"
+           "  var r=rule;"
+           "  for(var k in colorMap){"
+           "    if(r.indexOf(k)!==-1)r=r.split(k).join(colorMap[k]);"
+           "  }"
+           "  return origInsertRule.call(this,r,index);"
+           "};"
+           "window.__tfl_origInsertRule=origInsertRule;"
+           "window.__tfl_colorMap=colorMap;"
+           "})();";
+}
+
+// Runs in OnLoadEnd — after page loads
 std::string theme_get_inject_js(const std::string& css) {
     auto vars = parse_css_vars(css);
     std::string escaped_full = escape_css_for_js(css);
 
-    // Extract brand colors from theme
-    std::string brand = "#E95420", brandHover = "#D44B1C", brandPressed = "#B8400F", brandFg = "#F18A5F";
-    std::string bubbleBg = "#3B1035";  // default: Yaru Aubergine
+    std::string brand = "#E95420", brandFg = "#F18A5F";
+    std::string bubbleBg = "#3B1035";
     for (const auto& [name, value] : vars) {
         if (name == "--colorBrandBackground") brand = value;
-        else if (name == "--colorBrandBackgroundHover") brandHover = value;
-        else if (name == "--colorBrandBackgroundPressed") brandPressed = value;
         else if (name == "--colorBrandForeground1") brandFg = value;
         else if (name == "--tflBubbleBackground") bubbleBg = value;
     }
 
-    // Simple approach: inject <style> tag + periodic element color scan
+    // Part 1: <style> tag + Part 2: element scanner + Part 3: hover rule generator
     std::string js =
         // Part 1: inject the CSS file as a <style> element
         "(function(){"
@@ -223,9 +265,16 @@ std::string theme_get_inject_js(const std::string& css) {
         "}catch(e){}"
         "}"
         "}"
-        "setTimeout(scan,4000);"
-        "setInterval(scan,5000);"
-        // Part 3: scan CSSOM for :hover rules with brand colors and generate overrides
+        "// Scan: rapid at first for initial render, then slow for scroll/lazy-load\n"
+        "var scanCount=0;"
+        "function scheduleScan(){"
+        "  scanCount++;"
+        "  scan();"
+        "  if(scanCount<3)setTimeout(scheduleScan,1000);"
+        "  else setTimeout(scheduleScan,3000);"
+        "}"
+        "setTimeout(scheduleScan,1500);"
+        // Part 3: scan CSSOM for :hover rules — run once after Teams has loaded
         "setTimeout(function(){"
         "  var hoverCSS='';"
         "  for(var i=0;i<document.styleSheets.length;i++){"
