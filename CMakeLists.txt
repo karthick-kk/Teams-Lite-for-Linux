@@ -30,7 +30,6 @@ add_executable(tfl
     src/tray.cc
     src/notifications.cc
     src/idle.cc
-    src/webrtc_fix.cc
     src/openh264.cc
     src/theme.cc
 )
