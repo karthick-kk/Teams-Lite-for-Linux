@@ -97,6 +97,9 @@ public:
                        bool* is_keyboard_shortcut) override;
 
     // CefLoadHandler
+    void OnLoadStart(CefRefPtr<CefBrowser> browser,
+                     CefRefPtr<CefFrame> frame,
+                     CefLoadHandler::TransitionType transition_type) override;
     void OnLoadEnd(CefRefPtr<CefBrowser> browser,
                    CefRefPtr<CefFrame> frame,
                    int httpStatusCode) override;
