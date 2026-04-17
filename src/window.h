@@ -9,6 +9,7 @@
 #include "client.h"
 #include <vector>
 #include <string>
+#include <functional>
 
 // Window delegate — controls the app window (no tabs, no address bar)
 class TflWindowDelegate : public CefWindowDelegate {
@@ -16,7 +17,8 @@ public:
     TflWindowDelegate(CefRefPtr<CefBrowserView> browser_view,
                       const TflConfig& config,
                       CefRefPtr<TflClient> client = nullptr,
-                      const std::vector<std::string>& themes = {});
+                      const std::vector<std::string>& themes = {},
+                      std::function<void()> on_restart = nullptr);
 
     // CefWindowDelegate
     void OnWindowCreated(CefRefPtr<CefWindow> window) override;
@@ -32,6 +34,7 @@ private:
     TflConfig config_;
     CefRefPtr<TflClient> client_;
     std::vector<std::string> themes_;
+    std::function<void()> on_restart_;
 
     IMPLEMENT_REFCOUNTING(TflWindowDelegate);
     DISALLOW_COPY_AND_ASSIGN(TflWindowDelegate);

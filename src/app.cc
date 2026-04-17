@@ -1,4 +1,6 @@
 #include "app.h"
+#include <string>
+#include <cstdio>
 
 TflApp::TflApp(const TflConfig& config) : config_(config) {}
 
@@ -10,11 +12,15 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitchWithValue("ozone-platform", "wayland");
     command_line->AppendSwitch("enable-wayland-ime");
 
-    // HiDPI + spellcheck + VAAPI hardware video encoding
-    command_line->AppendSwitchWithValue("enable-features",
+    // HiDPI + spellcheck + optional VAAPI hardware video decode
+    std::string features =
         "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
-        "VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL,"
-        "WebRTCPipeWireCapturer");
+        "WebRTCPipeWireCapturer";
+    if (config_.vaapi) {
+        features += ",VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL";
+    }
+    command_line->AppendSwitchWithValue("enable-features", features);
+    fprintf(stderr, "[tfl] VAAPI: %s\n", config_.vaapi ? "enabled" : "disabled");
 
     // Disable H.264 simulcast — OpenH264 only supports single layer encoding
     command_line->AppendSwitchWithValue("force-fieldtrials",

@@ -15,7 +15,8 @@ struct TflConfig {
     bool minimized_to_tray = false;
     bool close_to_tray = true;  // X button hides to tray instead of quitting
     int idle_timeout = 300;
-    std::string theme = "none";      // theme name or "none" for Teams default          // seconds before allowing "Away" (0 = always available)
+    std::string theme = "none";      // theme name or "none" for Teams default
+    bool vaapi = true;               // VAAPI hardware video decode (disable to troubleshoot screen share)
 };
 
 TflConfig load_config();
@@ -26,5 +27,8 @@ void save_window_state(const TflConfig& config, int x, int y, int w, int h);
 // Try to acquire single-instance lock. Returns true if we're the only instance.
 // Save theme selection to config file
 void save_theme(const TflConfig& config, const std::string& theme);
+
+// Save VAAPI toggle to config file
+void save_vaapi(const TflConfig& config, bool enabled);
 
 bool acquire_instance_lock(const std::string& config_dir);
