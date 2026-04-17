@@ -15,6 +15,7 @@ static CefRefPtr<CefWindow> g_window;
 static bool g_quit_requested = false;
 static TflConfig g_config;
 static ThemeChangeCallback g_theme_callback;
+static RestartCallback g_restart_callback;
 
 // Helper to run a lambda on CEF's UI thread
 class CefLambdaTask : public CefTask {
@@ -67,13 +68,31 @@ static void on_theme_activate(GtkCheckMenuItem* item, gpointer data) {
     }
 }
 
+static void on_vaapi_toggled(GtkCheckMenuItem* item, gpointer) {
+    bool enabled = gtk_check_menu_item_get_active(item);
+    fprintf(stderr, "[tfl] VAAPI toggled: %s\n", enabled ? "on" : "off");
+
+    g_config.vaapi = enabled;
+    save_vaapi(g_config, enabled);
+
+    // Re-exec the process so new command-line flags take effect
+    if (g_restart_callback) {
+        RestartCallback cb = g_restart_callback;
+        CefPostTask(TID_UI, new CefLambdaTask([cb]() {
+            cb();
+        }));
+    }
+}
+
 void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
                const TflConfig& config, const std::vector<std::string>& themes,
-               ThemeChangeCallback on_theme_change) {
+               ThemeChangeCallback on_theme_change,
+               RestartCallback on_restart) {
     g_browser = browser;
     g_window = window;
     g_config = config;
     g_theme_callback = std::move(on_theme_change);
+    g_restart_callback = std::move(on_restart);
 
     // Find the source SVG icon
     char exe_path[4096];
@@ -208,6 +227,15 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
         gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), gtk_separator_menu_item_new());
     }
 
+    // VAAPI toggle
+    GtkWidget* vaapi_item = gtk_check_menu_item_new_with_label("Hardware Video Decode");
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(vaapi_item), config.vaapi ? TRUE : FALSE);
+    g_signal_connect(vaapi_item, "toggled", G_CALLBACK(on_vaapi_toggled), nullptr);
+    gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), vaapi_item);
+
+    // Separator
+    gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), gtk_separator_menu_item_new());
+
     // Quit
     GtkWidget* quit_item = gtk_menu_item_new_with_label("Quit");
     g_signal_connect(quit_item, "activate", G_CALLBACK(on_quit_activate), nullptr);
@@ -251,5 +279,6 @@ void tray_shutdown() {
     g_browser = nullptr;
     g_window = nullptr;
     g_theme_callback = nullptr;
+    g_restart_callback = nullptr;
     fprintf(stderr, "[tfl] Tray shutdown\n");
 }
