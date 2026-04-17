@@ -51,6 +51,7 @@ static void parse_config_file(const std::string& path, TflConfig& cfg) {
         else if (key == "y") cfg.y = std::atoi(val.c_str());
         else if (key == "idle_timeout") cfg.idle_timeout = std::atoi(val.c_str());
         else if (key == "theme") cfg.theme = val;
+        else if (key == "vaapi") cfg.vaapi = (val == "true" || val == "1");
     }
 }
 
@@ -83,7 +84,11 @@ static void write_default_config(const std::string& path) {
          << "# idle_timeout = 300\n"
          << "\n"
          << "# Theme (none = Teams default, yaru-dark, yaru-light)\n"
-         << "# theme = none\n";
+         << "# theme = none\n"
+         << "\n"
+         << "# Hardware video decode (VAAPI)\n"
+         << "# Disable if incoming screen share is not visible\n"
+         << "# vaapi = true\n";
 }
 
 TflConfig load_config() {
@@ -121,6 +126,7 @@ TflConfig load_config() {
     if (const char* w = std::getenv("TFL_WIDTH")) cfg.width = std::atoi(w);
     if (const char* h = std::getenv("TFL_HEIGHT")) cfg.height = std::atoi(h);
     if (std::getenv("TFL_DEV_TOOLS")) cfg.enable_dev_tools = true;
+    if (const char* v = std::getenv("TFL_VAAPI")) cfg.vaapi = (std::string(v) == "true" || std::string(v) == "1");
     if (const char* t = std::getenv("TFL_IDLE_TIMEOUT")) cfg.idle_timeout = std::atoi(t);
     if (const char* th = std::getenv("TFL_THEME")) cfg.theme = th;
 
@@ -152,7 +158,7 @@ static int g_lock_fd = -1;
 
 bool acquire_instance_lock(const std::string& config_dir) {
     std::string lock_path = config_dir + "/tfl.lock";
-    g_lock_fd = open(lock_path.c_str(), O_CREAT | O_RDWR, 0600);
+    g_lock_fd = open(lock_path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0600);
     if (g_lock_fd < 0) return false;
 
     if (flock(g_lock_fd, LOCK_EX | LOCK_NB) != 0) {
@@ -195,6 +201,44 @@ void save_theme(const TflConfig& config, const std::string& theme) {
     }
     if (!found) {
         out << "\ntheme = " << theme << "\n";
+    }
+
+    std::ofstream file(config_path);
+    if (file.is_open()) {
+        file << out.str();
+    }
+}
+
+void save_vaapi(const TflConfig& config, bool enabled) {
+    std::string config_path = config.config_dir + "/config";
+    std::string content;
+
+    std::ifstream in(config_path);
+    if (in.is_open()) {
+        std::ostringstream ss;
+        ss << in.rdbuf();
+        content = ss.str();
+        in.close();
+    }
+
+    bool found = false;
+    std::istringstream stream(content);
+    std::ostringstream out;
+    std::string line;
+    while (std::getline(stream, line)) {
+        std::string trimmed = trim(line);
+        if (trimmed.find("vaapi") == 0 && trimmed.find('=') != std::string::npos) {
+            out << "vaapi = " << (enabled ? "true" : "false") << "\n";
+            found = true;
+        } else if (trimmed == "# vaapi = true") {
+            out << "vaapi = " << (enabled ? "true" : "false") << "\n";
+            found = true;
+        } else {
+            out << line << "\n";
+        }
+    }
+    if (!found) {
+        out << "\nvaapi = " << (enabled ? "true" : "false") << "\n";
     }
 
     std::ofstream file(config_path);

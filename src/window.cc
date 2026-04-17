@@ -10,8 +10,10 @@
 TflWindowDelegate::TflWindowDelegate(CefRefPtr<CefBrowserView> browser_view,
                                      const TflConfig& config,
                                      CefRefPtr<TflClient> client,
-                                     const std::vector<std::string>& themes)
-    : browser_view_(browser_view), config_(config), client_(client), themes_(themes) {}
+                                     const std::vector<std::string>& themes,
+                                     std::function<void()> on_restart)
+    : browser_view_(browser_view), config_(config), client_(client),
+      themes_(themes), on_restart_(std::move(on_restart)) {}
 
 void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
     window->AddChildView(browser_view_);
@@ -22,10 +24,12 @@ void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
     CefRefPtr<CefBrowser> browser = browser_view_->GetBrowser();
     if (browser) {
         CefRefPtr<TflClient> cl = client_;
+        auto restart_cb = on_restart_;
         tray_init(browser, window, config_, themes_,
             [cl](const std::string& theme_name) {
                 if (cl) cl->ApplyTheme(theme_name);
-            });
+            },
+            restart_cb);
     }
 
     // Re-show window when notification is clicked

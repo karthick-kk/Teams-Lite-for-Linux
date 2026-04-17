@@ -4,6 +4,7 @@
 #include "config.h"
 #include "idle.h"
 #include "notifications.h"
+#include "tray.h"
 #include "theme.h"
 #include "openh264.h"
 #include "include/cef_app.h"
@@ -17,7 +18,15 @@
 
 namespace fs = std::filesystem;
 
+// Saved for re-exec on config changes (e.g. VAAPI toggle)
+static int g_argc = 0;
+static char** g_argv = nullptr;
+static bool g_restart_requested = false;
+
 int main(int argc, char* argv[]) {
+    g_argc = argc;
+    g_argv = argv;
+
     CefMainArgs main_args(argc, argv);
 
     // Subprocesses don't need full config — just enough for CefExecuteProcess
@@ -31,6 +40,7 @@ int main(int argc, char* argv[]) {
 
     // --- Main browser process: load full config ---
     config = load_config();
+    app->UpdateConfig(config);
 
     // Single-instance lock
     if (!acquire_instance_lock(config.config_dir)) {
@@ -105,7 +115,13 @@ int main(int argc, char* argv[]) {
 
     auto available_themes = theme_list_available();
     CefWindow::CreateTopLevelWindow(
-        new TflWindowDelegate(browser_view, config, client, available_themes));
+        new TflWindowDelegate(browser_view, config, client, available_themes,
+            []() {
+                // Restart: set flag, then use tray_request_quit which
+                // sets quit flag + closes window → CanClose returns true → CefQuitMessageLoop
+                g_restart_requested = true;
+                tray_request_quit();
+            }));
 
     // Start idle-aware presence monitor
     idle_monitor_start(config.idle_timeout, [client](const char* js) {
@@ -125,6 +141,15 @@ int main(int argc, char* argv[]) {
 
     notifications_shutdown();
     CefShutdown();
+
+    if (g_restart_requested) {
+        fprintf(stderr, "[tfl] Restarting...\n");
+        execv("/proc/self/exe", g_argv);
+        // execv only returns on error
+        perror("[tfl] execv failed");
+        return 1;
+    }
+
     fprintf(stderr, "[tfl] Shutdown complete\n");
     return 0;
 }

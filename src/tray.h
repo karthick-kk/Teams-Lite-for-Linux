@@ -10,10 +10,14 @@
 // Callback type for theme changes
 using ThemeChangeCallback = std::function<void(const std::string& theme_name)>;
 
+// Callback type for app restart (e.g. VAAPI toggle)
+using RestartCallback = std::function<void()>;
+
 // Initialize the system tray icon
 void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
                const TflConfig& config, const std::vector<std::string>& themes,
-               ThemeChangeCallback on_theme_change);
+               ThemeChangeCallback on_theme_change,
+               RestartCallback on_restart);
 
 // Update the tray tooltip text
 void tray_set_tooltip(const std::string& text);

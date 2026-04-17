@@ -13,6 +13,9 @@ public:
     void OnBeforeCommandLineProcessing(const CefString& process_type,
                                        CefRefPtr<CefCommandLine> command_line) override;
 
+    // Update config after load_config() — must be called before CefInitialize
+    void UpdateConfig(const TflConfig& config) { config_ = config; }
+
 private:
     TflConfig config_;
     IMPLEMENT_REFCOUNTING(TflApp);
