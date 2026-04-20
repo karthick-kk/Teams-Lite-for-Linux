@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) {
     CefString(&settings.accept_language_list) = "en-US,en";
     CefString(&settings.log_file) = config.cache_dir + "/cef.log";
     settings.log_severity = LOGSEVERITY_WARNING;
+    settings.persist_session_cookies = true;
     settings.remote_debugging_port = 9222;
     CefString(&settings.user_agent) = config.user_agent;
 
