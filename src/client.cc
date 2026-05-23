@@ -37,8 +37,13 @@ static bool is_teams_domain(const std::string& url) {
            ends_with(host, "login.live.com") ||
            ends_with(host, "login.microsoft.com") ||
            ends_with(host, "microsoftonline.com") ||
-           ends_with(host, "aadcdn.msftauth.net") ||
-           ends_with(host, "aadcdn.msauth.net");
+           ends_with(host, ".msftauth.net") ||
+           ends_with(host, ".msauth.net") ||
+           ends_with(host, ".microsoft.com") ||
+           ends_with(host, ".live.com") ||
+           ends_with(host, ".office365.com") ||
+           ends_with(host, ".sharepoint.com") ||
+           ends_with(host, ".onmicrosoft.com");
 }
 
 TflClient::TflClient(const TflConfig& config) : config_(config) {}
