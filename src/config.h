@@ -17,6 +17,7 @@ struct TflConfig {
     int idle_timeout = 300;
     std::string theme = "none";      // theme name or "none" for Teams default
     bool vaapi = true;               // VAAPI hardware video decode (disable to troubleshoot screen share)
+    bool screen_share_audio = true;  // Share system audio during screen share (disable to fix echo)
 };
 
 TflConfig load_config();
@@ -30,5 +31,8 @@ void save_theme(const TflConfig& config, const std::string& theme);
 
 // Save VAAPI toggle to config file
 void save_vaapi(const TflConfig& config, bool enabled);
+
+// Save screen share audio toggle to config file
+void save_screen_share_audio(const TflConfig& config, bool enabled);
 
 bool acquire_instance_lock(const std::string& config_dir);

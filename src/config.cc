@@ -52,6 +52,7 @@ static void parse_config_file(const std::string& path, TflConfig& cfg) {
         else if (key == "idle_timeout") cfg.idle_timeout = std::atoi(val.c_str());
         else if (key == "theme") cfg.theme = val;
         else if (key == "vaapi") cfg.vaapi = (val == "true" || val == "1");
+        else if (key == "screen_share_audio") cfg.screen_share_audio = (val == "true" || val == "1");
     }
 }
 
@@ -88,7 +89,10 @@ static void write_default_config(const std::string& path) {
          << "\n"
          << "# Hardware video decode (VAAPI)\n"
          << "# Disable if incoming screen share is not visible\n"
-         << "# vaapi = true\n";
+         << "# vaapi = true\n"
+         << "\n"
+         << "# Share system audio during screen sharing (disable to fix echo)\n"
+         << "# screen_share_audio = true\n";
 }
 
 TflConfig load_config() {
@@ -127,6 +131,7 @@ TflConfig load_config() {
     if (const char* h = std::getenv("TFL_HEIGHT")) cfg.height = std::atoi(h);
     if (std::getenv("TFL_DEV_TOOLS")) cfg.enable_dev_tools = true;
     if (const char* v = std::getenv("TFL_VAAPI")) cfg.vaapi = (std::string(v) == "true" || std::string(v) == "1");
+    if (const char* v = std::getenv("TFL_SCREEN_SHARE_AUDIO")) cfg.screen_share_audio = (std::string(v) == "true" || std::string(v) == "1");
     if (const char* t = std::getenv("TFL_IDLE_TIMEOUT")) cfg.idle_timeout = std::atoi(t);
     if (const char* th = std::getenv("TFL_THEME")) cfg.theme = th;
 
@@ -239,6 +244,44 @@ void save_vaapi(const TflConfig& config, bool enabled) {
     }
     if (!found) {
         out << "\nvaapi = " << (enabled ? "true" : "false") << "\n";
+    }
+
+    std::ofstream file(config_path);
+    if (file.is_open()) {
+        file << out.str();
+    }
+}
+
+void save_screen_share_audio(const TflConfig& config, bool enabled) {
+    std::string config_path = config.config_dir + "/config";
+    std::string content;
+
+    std::ifstream in(config_path);
+    if (in.is_open()) {
+        std::ostringstream ss;
+        ss << in.rdbuf();
+        content = ss.str();
+        in.close();
+    }
+
+    bool found = false;
+    std::istringstream stream(content);
+    std::ostringstream out;
+    std::string line;
+    while (std::getline(stream, line)) {
+        std::string trimmed = trim(line);
+        if (trimmed.find("screen_share_audio") == 0 && trimmed.find('=') != std::string::npos) {
+            out << "screen_share_audio = " << (enabled ? "true" : "false") << "\n";
+            found = true;
+        } else if (trimmed == "# screen_share_audio = true") {
+            out << "screen_share_audio = " << (enabled ? "true" : "false") << "\n";
+            found = true;
+        } else {
+            out << line << "\n";
+        }
+    }
+    if (!found) {
+        out << "\nscreen_share_audio = " << (enabled ? "true" : "false") << "\n";
     }
 
     std::ofstream file(config_path);

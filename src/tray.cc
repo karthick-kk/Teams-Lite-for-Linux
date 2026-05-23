@@ -84,6 +84,22 @@ static void on_vaapi_toggled(GtkCheckMenuItem* item, gpointer) {
     }
 }
 
+static void on_screen_share_audio_toggled(GtkCheckMenuItem* item, gpointer) {
+    bool enabled = gtk_check_menu_item_get_active(item);
+    fprintf(stderr, "[tfl] Screen share audio toggled: %s\n", enabled ? "on" : "off");
+
+    g_config.screen_share_audio = enabled;
+    save_screen_share_audio(g_config, enabled);
+
+    // Reload page so JS injection takes effect
+    CefRefPtr<CefBrowser> browser = g_browser;
+    if (browser) {
+        CefPostTask(TID_UI, new CefLambdaTask([browser]() {
+            browser->Reload();
+        }));
+    }
+}
+
 void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
                const TflConfig& config, const std::vector<std::string>& themes,
                ThemeChangeCallback on_theme_change,
@@ -232,6 +248,12 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(vaapi_item), config.vaapi ? TRUE : FALSE);
     g_signal_connect(vaapi_item, "toggled", G_CALLBACK(on_vaapi_toggled), nullptr);
     gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), vaapi_item);
+
+    // Screen share audio toggle
+    GtkWidget* ssa_item = gtk_check_menu_item_new_with_label("Screen Share Audio");
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(ssa_item), config.screen_share_audio ? TRUE : FALSE);
+    g_signal_connect(ssa_item, "toggled", G_CALLBACK(on_screen_share_audio_toggled), nullptr);
+    gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), ssa_item);
 
     // Separator
     gtk_menu_shell_append(GTK_MENU_SHELL(g_menu), gtk_separator_menu_item_new());

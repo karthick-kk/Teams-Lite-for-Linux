@@ -232,6 +232,16 @@ void TflClient::OnLoadStart(CefRefPtr<CefBrowser> browser,
     std::string url = frame->GetURL().ToString();
     if (!is_teams_domain(url)) return;
 
+    // If screen share audio is disabled, inject JS to strip audio from getDisplayMedia
+    if (!config_.screen_share_audio) {
+        frame->ExecuteJavaScript(
+            "(function(){var o=navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);"
+            "navigator.mediaDevices.getDisplayMedia=async function(c){"
+            "if(c)c.audio=false;var s=await o(c);"
+            "s.getAudioTracks().forEach(function(t){t.stop();s.removeTrack(t);});return s;};})();",
+            url, 0);
+    }
+
     // Inject insertRule hook BEFORE Teams' JS runs — this catches all Griffel
     // CSS rules as they're inserted, rewriting brand colors inline.
     if (config_.theme != "none" && !config_.theme.empty()) {
