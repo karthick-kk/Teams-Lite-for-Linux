@@ -13,9 +13,11 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitch("enable-wayland-ime");
 
     // HiDPI + spellcheck + optional VAAPI hardware video decode
+    // ChromeWideEchoCancellation: applies AEC to all captured audio (prevents echo during screen share)
+    // WebRtcAllowInputVolumeAdjustment: allows WebRTC to manage input levels for better AEC
     std::string features =
         "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
-        "WebRTCPipeWireCapturer";
+        "WebRTCPipeWireCapturer,ChromeWideEchoCancellation,WebRtcAllowInputVolumeAdjustment";
     if (config_.vaapi) {
         features += ",VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL";
     }
