@@ -10,6 +10,10 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <filesystem>
+#include "include/wrapper/cef_message_router.h"
 
 // Extract hostname from URL (e.g. "https://foo.bar.com/path?q=1" -> "foo.bar.com")
 static std::string get_hostname(const std::string& url) {
@@ -24,6 +28,32 @@ static std::string get_hostname(const std::string& url) {
 static bool ends_with(const std::string& str, const std::string& suffix) {
     if (suffix.size() > str.size()) return false;
     return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+// Safely open URL in default browser without shell injection
+static void open_url_external(const std::string& url) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Child process — close inherited file descriptors and exec
+        setsid();
+        execlp("xdg-open", "xdg-open", url.c_str(), nullptr);
+        _exit(1);  // exec failed
+    }
+    // Parent: don't wait — let xdg-open run async
+}
+
+// Escape string for use in JavaScript single-quoted string
+static std::string escape_for_js_string(const std::string& s) {
+    std::string escaped;
+    for (char c : s) {
+        if (c == '\\') escaped += "\\\\";
+        else if (c == '\'') escaped += "\\'";
+        else if (c == '\n') escaped += "\\n";
+        else if (c == '\r') escaped += "\\r";
+        else if (c == '\t') escaped += "\\t";
+        else escaped += c;
+    }
+    return escaped;
 }
 
 static bool is_teams_domain(const std::string& url) {
@@ -46,7 +76,80 @@ static bool is_teams_domain(const std::string& url) {
            ends_with(host, ".onmicrosoft.com");
 }
 
-TflClient::TflClient(const TflConfig& config) : config_(config) {}
+// Handler for JS->C++ notification messages via cefQuery
+class NotificationHandler : public CefMessageRouterBrowserSide::Handler {
+public:
+    bool OnQuery(CefRefPtr<CefBrowser> browser,
+                 CefRefPtr<CefFrame> frame,
+                 int64_t query_id,
+                 const CefString& request,
+                 bool persistent,
+                 CefRefPtr<Callback> callback) override {
+        std::string req = request.ToString();
+        
+        // Parse simple JSON: {"type":"notification","title":"...","body":"..."}
+        if (req.find("\"type\":\"notification\"") == std::string::npos) {
+            return false;  // not our message
+        }
+        
+        auto extract = [&req](const std::string& key) -> std::string {
+            std::string search = "\"" + key + "\":\"";
+            auto pos = req.find(search);
+            if (pos == std::string::npos) return "";
+            pos += search.size();
+            auto end = req.find("\"", pos);
+            if (end == std::string::npos) return "";
+            std::string val = req.substr(pos, end - pos);
+            // Unescape basic JSON escapes
+            std::string result;
+            for (size_t i = 0; i < val.size(); i++) {
+                if (val[i] == '\\' && i + 1 < val.size()) {
+                    char next = val[i + 1];
+                    if (next == 'n') { result += '\n'; i++; }
+                    else if (next == 'r') { result += '\r'; i++; }
+                    else if (next == 't') { result += '\t'; i++; }
+                    else if (next == '"') { result += '"'; i++; }
+                    else if (next == '\\') { result += '\\'; i++; }
+                    else result += val[i];
+                } else {
+                    result += val[i];
+                }
+            }
+            return result;
+        };
+        
+        std::string title = extract("title");
+        std::string body = extract("body");
+        
+        // Truncate long messages
+        const size_t max_body = 100;
+        if (body.size() > max_body) {
+            body = body.substr(0, max_body - 3) + "...";
+        }
+        
+        // If body is empty, use title as body (some notifications are title-only)
+        if (body.empty() && !title.empty()) {
+            body = title;
+            title = "Microsoft Teams";
+        }
+        
+        if (!title.empty()) {
+            notifications_show(title, body);
+            fprintf(stderr, "[tfl] Rich notification: %s: %s\n", title.c_str(), body.c_str());
+        }
+        
+        callback->Success("");
+        return true;
+    }
+};
+
+static NotificationHandler g_notification_handler;
+
+TflClient::TflClient(const TflConfig& config) : config_(config) {
+    CefMessageRouterConfig router_config;
+    message_router_ = CefMessageRouterBrowserSide::Create(router_config);
+    message_router_->AddHandler(&g_notification_handler, false);
+}
 
 // --- LifeSpan ---
 
@@ -69,6 +172,7 @@ void TflClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
             break;
         }
     }
+    message_router_->OnBeforeClose(browser);
     if (browsers_.empty()) {
         CefQuitMessageLoop();
     }
@@ -120,8 +224,7 @@ bool TflClient::OnBeforePopup(
                 decoded += encoded[i];
             }
             if (!decoded.empty()) {
-                std::string cmd = "xdg-open '" + decoded + "' &";
-                system(cmd.c_str());
+                open_url_external(decoded);
                 fprintf(stderr, "[tfl] Safelink opened: %s\n", decoded.c_str());
                 return true;
             }
@@ -134,8 +237,7 @@ bool TflClient::OnBeforePopup(
     }
 
     // Other external links — open in default browser
-    std::string cmd = "xdg-open '" + url + "' &";
-    system(cmd.c_str());
+    open_url_external(url);
     return true;  // cancel popup
 }
 
@@ -188,9 +290,10 @@ bool TflClient::OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
         int idx = command_id - MENU_ID_SPELLCHECK_SUGGESTION_0;
         if (idx >= 0 && idx < (int)suggestions.size()) {
             CefString replacement = suggestions[idx];
+            // Escape for JS string to prevent injection
+            std::string escaped = escape_for_js_string(replacement.ToString());
             frame->ExecuteJavaScript(
-                "document.execCommand('insertText', false, '" +
-                replacement.ToString() + "');",
+                "document.execCommand('insertText', false, '" + escaped + "');",
                 frame->GetURL(), 0);
         }
         return true;
@@ -206,7 +309,12 @@ bool TflClient::OnBeforeDownload(CefRefPtr<CefBrowser> browser,
                                   CefRefPtr<CefBeforeDownloadCallback> callback) {
     const char* home = std::getenv("HOME");
     std::string downloads_dir = std::string(home ? home : "/tmp") + "/Downloads";
-    std::string path = downloads_dir + "/" + suggested_name.ToString();
+    // Sanitize filename to prevent path traversal
+    std::string safe_name = std::filesystem::path(suggested_name.ToString()).filename().string();
+    if (safe_name.empty() || safe_name == "." || safe_name == "..") {
+        safe_name = "download";
+    }
+    std::string path = downloads_dir + "/" + safe_name;
 
     fprintf(stderr, "[tfl] Downloading: %s\n", path.c_str());
     callback->Continue(path, false);
@@ -258,6 +366,43 @@ void TflClient::OnLoadStart(CefRefPtr<CefBrowser> browser,
             }
         }
     }
+
+    // Inject Notification API override to capture rich notification content
+    frame->ExecuteJavaScript(R"JS(
+(function() {
+    if (window.__tflNotificationOverride) return;
+    window.__tflNotificationOverride = true;
+    
+    window.Notification = function(title, options) {
+        options = options || {};
+        if (window.cefQuery) {
+            var body = options.body || '';
+            var escapeJson = function(s) {
+                return s.replace(/\\/g, '\\\\')
+                        .replace(/"/g, '\\"')
+                        .replace(/\n/g, '\\n')
+                        .replace(/\r/g, '\\r')
+                        .replace(/\t/g, '\\t');
+            };
+            window.cefQuery({
+                request: '{"type":"notification","title":"' + escapeJson(title || '') + '","body":"' + escapeJson(body) + '"}',
+                onSuccess: function(r) {},
+                onFailure: function(c, m) {}
+            });
+        }
+        return {
+            close: function() {},
+            addEventListener: function() {},
+            removeEventListener: function() {}
+        };
+    };
+    window.Notification.permission = 'granted';
+    window.Notification.requestPermission = function(cb) {
+        if (cb) cb('granted');
+        return Promise.resolve('granted');
+    };
+})();
+)JS", url, 0);
 }
 
 void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
@@ -330,13 +475,8 @@ void TflClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& ti
     }
     tray_set_tooltip(tooltip);
 
-    // Show desktop notification when badge count increases
-    if (badge > last_badge_ && badge > 0) {
-        int new_msgs = badge - last_badge_;
-        std::string body = std::to_string(new_msgs) + " new message" +
-                           (new_msgs > 1 ? "s" : "");
-        notifications_show("Microsoft Teams", body);
-    }
+    // Badge-based notifications disabled — rich notifications via JS override are now used
+    // (kept badge tracking for tray tooltip)
     last_badge_ = badge;
 
     // Set window title for GNOME titlebar
@@ -356,15 +496,22 @@ bool TflClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
                                bool user_gesture,
                                bool is_redirect) {
     if (!frame->IsMain()) return false;
+    message_router_->OnBeforeBrowse(browser, frame);
 
     std::string url = request->GetURL().ToString();
     if (is_teams_domain(url)) return false;
 
     // External URL clicked by user — open in default browser
-    std::string cmd = "xdg-open '" + url + "' &";
-    system(cmd.c_str());
+    open_url_external(url);
     fprintf(stderr, "[tfl] External link opened: %s\n", url.c_str());
     return true;  // cancel navigation in CEF
+}
+
+bool TflClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
+                                          CefRefPtr<CefFrame> frame,
+                                          CefProcessId source_process,
+                                          CefRefPtr<CefProcessMessage> message) {
+    return message_router_->OnProcessMessageReceived(browser, frame, source_process, message);
 }
 
 bool TflClient::OnOpenURLFromTab(CefRefPtr<CefBrowser> browser,
@@ -376,8 +523,7 @@ bool TflClient::OnOpenURLFromTab(CefRefPtr<CefBrowser> browser,
     if (is_teams_domain(url)) return false;
 
     // External URL (e.g. ctrl+click, middle-click) — open in default browser
-    std::string cmd = "xdg-open '" + url + "' &";
-    system(cmd.c_str());
+    open_url_external(url);
     fprintf(stderr, "[tfl] External link opened (tab): %s\n", url.c_str());
     return true;  // cancel navigation in CEF
 }
