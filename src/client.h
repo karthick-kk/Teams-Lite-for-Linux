@@ -10,6 +10,7 @@
 #include "include/cef_jsdialog_handler.h"
 #include "include/cef_context_menu_handler.h"
 #include "include/cef_download_handler.h"
+#include "include/wrapper/cef_message_router.h"
 #include "config.h"
 #include <list>
 
@@ -36,6 +37,10 @@ public:
     CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override { return this; }
     CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
     CefRefPtr<CefDownloadHandler> GetDownloadHandler() override { return this; }
+    bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
+                                  CefRefPtr<CefFrame> frame,
+                                  CefProcessId source_process,
+                                  CefRefPtr<CefProcessMessage> message) override;
 
     // CefLifeSpanHandler
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
@@ -154,6 +159,7 @@ private:
     int last_badge_ = 0;
     std::list<CefRefPtr<CefBrowser>> browsers_;
     CefRefPtr<CefFrame> teams_frame_;  // main Teams frame for JS injection
+    CefRefPtr<CefMessageRouterBrowserSide> message_router_;
 
     IMPLEMENT_REFCOUNTING(TflClient);
     DISALLOW_COPY_AND_ASSIGN(TflClient);

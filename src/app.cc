@@ -58,3 +58,34 @@ void TflApp::OnBeforeCommandLineProcessing(
     // Spellcheck
     command_line->AppendSwitch("enable-spelling-auto-correct");
 }
+
+// --- Render Process Handler (runs in renderer subprocess) ---
+
+void TflApp::OnContextCreated(CefRefPtr<CefBrowser> browser,
+                               CefRefPtr<CefFrame> frame,
+                               CefRefPtr<CefV8Context> context) {
+    // Create renderer-side message router on first context
+    if (!renderer_router_) {
+        CefMessageRouterConfig config;
+        renderer_router_ = CefMessageRouterRendererSide::Create(config);
+    }
+    renderer_router_->OnContextCreated(browser, frame, context);
+}
+
+void TflApp::OnContextReleased(CefRefPtr<CefBrowser> browser,
+                                CefRefPtr<CefFrame> frame,
+                                CefRefPtr<CefV8Context> context) {
+    if (renderer_router_) {
+        renderer_router_->OnContextReleased(browser, frame, context);
+    }
+}
+
+bool TflApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
+                                       CefRefPtr<CefFrame> frame,
+                                       CefProcessId source_process,
+                                       CefRefPtr<CefProcessMessage> message) {
+    if (renderer_router_) {
+        return renderer_router_->OnProcessMessageReceived(browser, frame, source_process, message);
+    }
+    return false;
+}
