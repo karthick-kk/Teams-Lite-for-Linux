@@ -91,8 +91,8 @@ static void write_default_config(const std::string& path) {
          << "# Disable if incoming screen share is not visible\n"
          << "# vaapi = true\n"
          << "\n"
-         << "# Share system audio during screen sharing (disable to fix echo)\n"
-         << "# screen_share_audio = true\n";
+         << "# Share system audio during screen sharing (opt-in; default off to prevent echo)\n"
+         << "# screen_share_audio = false\n";
 }
 
 TflConfig load_config() {

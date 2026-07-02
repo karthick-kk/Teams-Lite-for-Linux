@@ -17,7 +17,7 @@ struct TflConfig {
     int idle_timeout = 300;
     std::string theme = "none";      // theme name or "none" for Teams default
     bool vaapi = true;               // VAAPI hardware video decode (disable to troubleshoot screen share)
-    bool screen_share_audio = true;  // Share system audio during screen share (disable to fix echo)
+    bool screen_share_audio = false; // Share system audio during screen share (opt-in; default off to prevent echo)
 };
 
 TflConfig load_config();

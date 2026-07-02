@@ -13,8 +13,10 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitch("enable-wayland-ime");
 
     // HiDPI + spellcheck + optional VAAPI hardware video decode
-    // ChromeWideEchoCancellation: applies AEC to all captured audio (prevents echo during screen share)
-    // WebRtcAllowInputVolumeAdjustment: allows WebRTC to manage input levels for better AEC
+    // ChromeWideEchoCancellation / WebRtcAllowInputVolumeAdjustment: acoustic AEC for the mic
+    // path. These do NOT reliably cancel the desktop-loopback feedback path during screen share
+    // (a digital tap of audio output, not an acoustic echo) in this CEF build. Screen-share
+    // echo is prevented by the screen_share_audio default-off (see config.h / client.cc).
     std::string features =
         "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
         "WebRTCPipeWireCapturer,ChromeWideEchoCancellation,WebRtcAllowInputVolumeAdjustment";
