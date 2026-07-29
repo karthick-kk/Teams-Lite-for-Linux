@@ -1,9 +1,9 @@
 #!/bin/bash
 # Download pre-built CEF binary distribution with H.264 encoding + PipeWire
-# Source: GitHub Release (custom build from CEF branch 7632 / Chromium 145)
+# Source: GitHub Release (custom build from CEF branch 7922 / Chromium 151)
 set -euo pipefail
 
-CEF_CHROMIUM_VERSION="145.0.7632.160"
+CEF_CHROMIUM_VERSION="151.0.7922.47"
 CEF_TARBALL="cef_binary_${CEF_CHROMIUM_VERSION}_linux64_h264_pipewire.tar.gz"
 CEF_URL="https://github.com/karthick-kk/Teams-Lite-for-Linux/releases/download/cef-${CEF_CHROMIUM_VERSION}/${CEF_TARBALL}"
 CEF_DIR="${1:-/tmp/cef}"

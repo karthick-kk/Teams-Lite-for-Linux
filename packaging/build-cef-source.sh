@@ -3,12 +3,12 @@
 # Requirements: ~50GB disk, ~16GB RAM, 2-6 hours depending on CPU
 set -euo pipefail
 
-CEF_BRANCH="7632"  # CEF 145 / Chromium 145
+CEF_BRANCH="7922"  # CEF 151 / Chromium 151
 BUILD_DIR="${1:-/home/kk/dev/cef-build}"
 JOBS="${2:-$(nproc)}"
 
 echo "=== CEF Source Build (H.264 encoding + PipeWire) ==="
-echo "Branch: ${CEF_BRANCH} (Chromium 145)"
+echo "Branch: ${CEF_BRANCH} (Chromium 151)"
 echo "Build dir: ${BUILD_DIR}"
 echo "Jobs: ${JOBS}"
 echo "Disk needed: ~50GB"
