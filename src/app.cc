@@ -12,33 +12,40 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitchWithValue("ozone-platform", "wayland");
     command_line->AppendSwitch("enable-wayland-ime");
 
-    // HiDPI + spellcheck + optional VAAPI hardware video decode
-    // ChromeWideEchoCancellation / WebRtcAllowInputVolumeAdjustment: acoustic AEC for the mic
-    // path. These do NOT reliably cancel the desktop-loopback feedback path during screen share
-    // (a digital tap of audio output, not an acoustic echo) in this CEF build. Screen-share
-    // echo is prevented by the screen_share_audio default-off (see config.h / client.cc).
+    // Wayland + optional VAAPI hardware video decode
+    // ChromeWideEchoCancellation / WebRtcAllowInputVolumeAdjustment: acoustic AEC for mic
+    // path. These do NOT reliably cancel desktop-loopback feedback during screen share.
     std::string features =
-        "UseOzonePlatform,WaylandWindowDecorations,SpellcheckServiceMultilingual,"
+        "UseOzonePlatform,WaylandWindowDecorations,"
         "WebRTCPipeWireCapturer,ChromeWideEchoCancellation,WebRtcAllowInputVolumeAdjustment";
     if (config_.vaapi) {
         features += ",VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL";
     }
     command_line->AppendSwitchWithValue("enable-features", features);
+    command_line->AppendSwitchWithValue("disable-features",
+        "SpareRendererForSitePerProcess,SpellCheck,BackForwardCache");
     fprintf(stderr, "[tfl] VAAPI: %s\n", config_.vaapi ? "enabled" : "disabled");
 
     // Disable H.264 simulcast — OpenH264 only supports single layer encoding
     command_line->AppendSwitchWithValue("force-fieldtrials",
-        "WebRTC-H264Simulcast/Disabled/");
+        "WebRTC-H264Simulcast/Disabled/BackForwardCache/Disabled/");
 
     // GPU acceleration
     command_line->AppendSwitch("enable-gpu");
     command_line->AppendSwitch("enable-gpu-rasterization");
+    command_line->AppendSwitch("in-process-gpu");
 
     // Allow up to 30fps for video capture
     command_line->AppendSwitchWithValue("max-gum-fps", "30");
 
     // Custom user-agent
     command_line->AppendSwitchWithValue("user-agent", config_.user_agent);
+
+    // Limit renderer processes — Teams only needs one tab
+    command_line->AppendSwitchWithValue("renderer-process-limit", "1");
+    command_line->AppendSwitchWithValue("js-flags", "--max-old-space-size=512");
+    command_line->AppendSwitch("disable-gpu-shader-disk-cache");
+    command_line->AppendSwitch("aggressive-cache-discard");
 
     // Disable sandbox (we're not shipping chrome-sandbox suid)
     command_line->AppendSwitch("no-sandbox");
@@ -56,9 +63,6 @@ void TflApp::OnBeforeCommandLineProcessing(
 
     // Enable screen sharing via xdg-desktop-portal (Wayland native)
     command_line->AppendSwitch("enable-usermedia-screen-capturing");
-
-    // Spellcheck
-    command_line->AppendSwitch("enable-spelling-auto-correct");
 }
 
 // --- Render Process Handler (runs in renderer subprocess) ---
