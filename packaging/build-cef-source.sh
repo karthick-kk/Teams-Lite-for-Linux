@@ -4,7 +4,7 @@
 set -euo pipefail
 
 CEF_BRANCH="7922"  # CEF 151 / Chromium 151
-BUILD_DIR="${1:-/home/kk/dev/cef-build}"
+BUILD_DIR="${1:-${HOME}/dev/cef-build}"
 JOBS="${2:-$(nproc)}"
 
 echo "=== CEF Source Build (H.264 encoding + PipeWire) ==="
@@ -133,4 +133,4 @@ echo "=== CEF build complete ==="
 echo "Installed to: /tmp/cef"
 echo ""
 echo "Rebuild tfl:"
-echo "  cd /home/kk/dev/tfl/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef && make -j\$(nproc)"
+echo "  cd <tfl-source>/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCEF_ROOT=/tmp/cef && make -j\$(nproc)"
