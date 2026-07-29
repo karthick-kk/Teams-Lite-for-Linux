@@ -74,6 +74,7 @@ echo ""
 # rtc_use_pipewire=true: PipeWire screen capture for native Wayland screen sharing
 export GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome rtc_use_h264=true rtc_use_pipewire=true use_sysroot=false symbol_level=1 is_cfi=false use_thin_lto=false"
 export CEF_USE_GN=1
+export NINJA_JOBS="${JOBS}"
 
 # --- Build ---
 echo "[5/7] Starting CEF build (this will take 2-4 hours)..."
@@ -89,8 +90,7 @@ python3 "${BUILD_DIR}/code/automate-git.py" \
     --client-distrib \
     --force-clean \
     --x64-build \
-    --with-pgo-profiles \
-    --jobs="${JOBS}"
+    --with-pgo-profiles
 
 # --- Find output ---
 echo "[6/7] Locating build output..."
