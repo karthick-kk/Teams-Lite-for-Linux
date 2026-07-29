@@ -17,21 +17,29 @@ echo ""
 # --- Prerequisites ---
 echo "[1/7] Checking prerequisites..."
 
-DEPS=(
-    git python3 curl lsb-release
-    gcc make cmake ninja
-    gperf bison flex
-    nss alsa-lib libxrandr libxcomposite libxdamage
-    cups at-spi2-atk libdrm mesa
-    gtk3 dbus libnotify
-)
-
-for dep in "${DEPS[@]}"; do
-    if ! pacman -Qi "$dep" &>/dev/null; then
-        echo "  Installing $dep..."
-        sudo pacman -S --noconfirm "$dep"
-    fi
-done
+if command -v pacman &>/dev/null; then
+    DEPS=(git python3 curl lsb-release gcc make cmake ninja gperf bison flex
+          nss alsa-lib libxrandr libxcomposite libxdamage cups at-spi2-atk libdrm mesa gtk3 dbus libnotify)
+    for dep in "${DEPS[@]}"; do
+        if ! pacman -Qi "$dep" &>/dev/null; then
+            echo "  Installing $dep..."
+            sudo pacman -S --noconfirm "$dep"
+        fi
+    done
+elif command -v apt-get &>/dev/null; then
+    sudo apt-get install -y git python3 curl lsb-release build-essential cmake ninja-build \
+        gperf bison flex libnss3-dev libasound2-dev libxrandr-dev libxcomposite-dev \
+        libxdamage-dev libcups2-dev libatk-bridge2.0-dev libdrm-dev libgtk-3-dev \
+        libdbus-1-dev libnotify-dev
+elif command -v dnf &>/dev/null; then
+    sudo dnf install -y git python3 curl gcc-c++ cmake ninja-build gperf bison flex \
+        nss-devel alsa-lib-devel libXrandr-devel libXcomposite-devel libXdamage-devel \
+        cups-devel at-spi2-atk-devel libdrm-devel mesa-libGL-devel gtk3-devel \
+        dbus-devel libnotify-devel
+else
+    echo "  WARNING: Unknown package manager. Ensure build deps are installed manually."
+    echo "  Needed: git python3 curl cmake ninja gcc/g++ gperf bison flex + X11/GTK3/NSS dev libs"
+fi
 
 # --- depot_tools ---
 echo "[2/7] Setting up depot_tools..."
