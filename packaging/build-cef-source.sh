@@ -87,7 +87,6 @@ python3 "${BUILD_DIR}/code/automate-git.py" \
     --download-dir="${BUILD_DIR}/code" \
     --branch="${CEF_BRANCH}" \
     --minimal-distrib \
-    --client-distrib \
     --force-clean \
     --x64-build \
     --with-pgo-profiles
