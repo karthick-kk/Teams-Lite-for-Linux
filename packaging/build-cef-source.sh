@@ -72,7 +72,7 @@ echo ""
 # ffmpeg_branding=Chrome: full codec support (H.264/AAC decoding via bundled FFmpeg)
 # rtc_use_h264=true: use Cisco's OpenH264 (BSD-licensed) for WebRTC H.264 encoding
 # rtc_use_pipewire=true: PipeWire screen capture for native Wayland screen sharing
-export GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome rtc_use_h264=true rtc_use_pipewire=true use_sysroot=false symbol_level=1 is_cfi=false use_thin_lto=false"
+export GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome rtc_use_h264=true rtc_use_pipewire=true use_sysroot=false symbol_level=0 is_cfi=false use_thin_lto=false"
 export CEF_USE_GN=1
 export NINJA_JOBS="${JOBS}"
 
