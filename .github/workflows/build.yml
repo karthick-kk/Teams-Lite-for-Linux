@@ -422,7 +422,7 @@ jobs:
           echo "| Portable binary | \`tfl-${APP_VERSION}-linux-x86_64.tar.gz\` |" >> changelog.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@da05d552573a2c5fa2f5d1f5cbf5b9b0f3ae6c5d
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631  # v2.2.2
         with:
           body_path: changelog.md
           files: |
