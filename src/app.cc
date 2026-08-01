@@ -12,9 +12,18 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitchWithValue("ozone-platform", "wayland");
     command_line->AppendSwitch("enable-wayland-ime");
 
-    // Wayland + optional VAAPI hardware video decode
-    // ChromeWideEchoCancellation / WebRtcAllowInputVolumeAdjustment: acoustic AEC for mic
-    // path. These do NOT reliably cancel desktop-loopback feedback during screen share.
+    // GPU acceleration
+    command_line->AppendSwitch("enable-gpu");
+    command_line->AppendSwitch("enable-gpu-rasterization");
+    command_line->AppendSwitch("in-process-gpu");
+
+    // Custom user-agent
+    command_line->AppendSwitchWithValue("user-agent", config_.user_agent);
+
+    // Disable sandbox (we're not shipping chrome-sandbox suid)
+    command_line->AppendSwitch("no-sandbox");
+
+    // Feature flags: Wayland, PipeWire, VAAPI, echo cancellation
     std::string features =
         "UseOzonePlatform,WaylandWindowDecorations,"
         "WebRTCPipeWireCapturer,ChromeWideEchoCancellation,WebRtcAllowInputVolumeAdjustment";
@@ -22,46 +31,35 @@ void TflApp::OnBeforeCommandLineProcessing(
         features += ",VaapiVideoDecoder,VaapiVideoEncoder,VaapiVideoDecodeLinuxGL";
     }
     command_line->AppendSwitchWithValue("enable-features", features);
-    command_line->AppendSwitchWithValue("disable-features",
-        "SpareRendererForSitePerProcess,SpellCheck,BackForwardCache");
     fprintf(stderr, "[tfl] VAAPI: %s\n", config_.vaapi ? "enabled" : "disabled");
+
+    // ponytail: disable-features crashes CEF 151 (segfault with any value, even nonsense).
+    // Workaround: use individual switches. Revisit when upgrading CEF.
+    command_line->AppendSwitch("disable-spell-checking");        // was: SpellCheck
+    command_line->AppendSwitch("disable-back-forward-cache");    // was: BackForwardCache
 
     // Disable H.264 simulcast — OpenH264 only supports single layer encoding
     command_line->AppendSwitchWithValue("force-fieldtrials",
-        "WebRTC-H264Simulcast/Disabled/BackForwardCache/Disabled/");
-
-    // GPU acceleration
-    command_line->AppendSwitch("enable-gpu");
-    command_line->AppendSwitch("enable-gpu-rasterization");
-    command_line->AppendSwitch("in-process-gpu");
+        "WebRTC-H264Simulcast/Disabled/");
 
     // Allow up to 30fps for video capture
     command_line->AppendSwitchWithValue("max-gum-fps", "30");
 
-    // Custom user-agent
-    command_line->AppendSwitchWithValue("user-agent", config_.user_agent);
-
-    // Limit renderer processes — Teams only needs one tab
+    // Memory: limit renderer processes (avoids spare renderer overhead)
     command_line->AppendSwitchWithValue("renderer-process-limit", "1");
+
+    // Memory: cap V8 heap per renderer
     command_line->AppendSwitchWithValue("js-flags", "--max-old-space-size=512");
+
+    // Memory: discard GPU shader disk cache on exit
     command_line->AppendSwitch("disable-gpu-shader-disk-cache");
     command_line->AppendSwitch("aggressive-cache-discard");
 
-    // Disable sandbox (we're not shipping chrome-sandbox suid)
-    command_line->AppendSwitch("no-sandbox");
-
-    // Enable media stream (camera, mic) — required for getUserMedia
+    // Media/stream permissions
     command_line->AppendSwitch("enable-media-stream");
-    // Auto-select default devices without showing picker UI (needed for mic/speaker)
     command_line->AppendSwitch("use-fake-ui-for-media-stream");
-
-    // Use PipeWire for audio/screen capture on Wayland
     command_line->AppendSwitch("enable-webrtc-pipewire-capturer");
-
-    // Autoplay for notification sounds
     command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
-
-    // Enable screen sharing via xdg-desktop-portal (Wayland native)
     command_line->AppendSwitch("enable-usermedia-screen-capturing");
 }
 
