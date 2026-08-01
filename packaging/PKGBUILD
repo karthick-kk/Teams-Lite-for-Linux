@@ -6,7 +6,10 @@ pkgdesc="Teams Lite for Linux — unofficial Microsoft Teams client (native C++/
 arch=('x86_64')
 url="https://github.com/karthick-kk/Teams-Lite-for-Linux"
 license=('MIT')
-depends=('gtk3' 'libayatana-appindicator' 'libnotify' 'nss' 'alsa-lib')
+depends=('gtk3' 'libayatana-appindicator' 'libnotify' 'nss' 'alsa-lib'
+         'libxkbcommon' 'libxrandr' 'libxcomposite' 'libxdamage'
+         'libxfixes' 'libxrender' 'libxext' 'libxi' 'libxtst'
+         'libcups' 'at-spi2-core' 'pango' 'dbus')
 makedepends=('cmake' 'pkg-config' 'curl' 'patchelf')
 source=("${pkgname}-${pkgver}.tar.gz::https://github.com/karthick-kk/Teams-Lite-for-Linux/archive/v${pkgver}.tar.gz")
 sha256sums=('SKIP')

@@ -18,9 +18,10 @@ Built with [CEF](https://bitbucket.org/chromiumembedded/cef) (Chromium Embedded 
 - **Single instance** — prevents duplicate processes via flock
 - **Desktop notifications** — native libnotify notifications on new messages, click to show window
 - **Badge count** — parses unread count from page title, updates tray tooltip
-- **Spellcheck** — with right-click suggestions in context menu
 - **Downloads** — auto-saves to `~/Downloads` without dialog
 - **Idle override** — injects JS to prevent false "Away" status when window is unfocused
+- **Theming** — built-in themes (Yaru Dark, Catppuccin Mocha) via tray menu or config
+- **VAAPI** — hardware video decode/encode (toggleable via tray or config)
 - **External links** — opens non-Teams URLs in default browser via xdg-open
 - **Auto-grant permissions** — camera, mic, notifications, clipboard auto-accepted for Teams
 - **Suppress prompts** — "save password" and "leave page" dialogs auto-accepted
@@ -46,10 +47,11 @@ sudo dnf install gcc-c++ cmake pkg-config gtk3-devel \
 
 ### Download CEF and build
 
+CEF 151 (Chromium 151.0.7922.47) with H.264 encoding and PipeWire screen sharing
+is downloaded from the [TFL GitHub releases](https://github.com/karthick-kk/Teams-Lite-for-Linux/releases):
+
 ```bash
-# Download CEF binary distribution (~300MB) and build the wrapper library
-# Note: Spotify CDN build lacks H.264 encoding and PipeWire — video calls
-# and screen sharing require building CEF from source (see below)
+# Download pre-built CEF binary (~300MB) and build the wrapper library
 bash packaging/download-cef.sh /tmp/cef
 
 # Build tfl
@@ -61,16 +63,16 @@ make -j$(nproc)
 ./tfl
 ```
 
-### Building CEF from source (for H.264 + PipeWire)
+### Building CEF from source
 
-The Spotify CDN binary includes H.264 decoding but not encoding, and lacks PipeWire
-support. For video calls and screen sharing on Wayland, build CEF from source:
+The pre-built binary above includes H.264 encoding and PipeWire. To build CEF from
+source (e.g. for a different Chromium version or custom flags):
 
 ```bash
 bash packaging/build-cef-source.sh
 ```
 
-This requires ~60GB disk space and 2-6 hours. See the script for details.
+Requires ~50GB disk, ~16GB RAM, 2-6 hours depending on CPU.
 
 ## Configuration
 
@@ -78,11 +80,13 @@ Config file: `~/.config/tfl/config` (created on first run)
 
 ```ini
 # Teams URL
-# url = https://teams.cloud.microsoft
+# url = https://teams.microsoft.com/v2/
 
-# Window size
+# Window size and position
 # width = 1280
 # height = 800
+# x = (centered)
+# y = (centered)
 
 # Start minimized to tray
 # start_minimized = false
@@ -92,6 +96,18 @@ Config file: `~/.config/tfl/config` (created on first run)
 
 # Enable developer tools (F12)
 # dev_tools = false
+
+# Theme: none, yaru-dark, catppuccin-mocha
+# theme = none
+
+# Hardware video decode (VAAPI)
+# vaapi = true
+
+# Screen share audio (enable only if you have no mic echo)
+# screen_share_audio = false
+
+# Idle timeout (seconds before "Away" override kicks in)
+# idle_timeout = 300
 ```
 
 Environment variable overrides (highest priority):
@@ -102,6 +118,10 @@ Environment variable overrides (highest priority):
 | `TFL_WIDTH` | Window width |
 | `TFL_HEIGHT` | Window height |
 | `TFL_DEV_TOOLS` | Enable F12 devtools (set to any value) |
+| `TFL_THEME` | Theme name (none, yaru-dark, catppuccin-mocha) |
+| `TFL_VAAPI` | Enable VAAPI hardware video decode (true/false) |
+| `TFL_SCREEN_SHARE_AUDIO` | Enable screen share audio (true/false) |
+| `TFL_IDLE_TIMEOUT` | Idle timeout in seconds |
 
 ### Custom CSS
 
@@ -121,6 +141,7 @@ Packages are built automatically on tag push (`v*`). Produces:
 - `.deb` (Ubuntu/Debian)
 - `.rpm` (Fedora/RHEL)
 - `.pkg.tar.zst` (Arch Linux)
+- `.tar.gz` (portable binary)
 
 ### Local builds with act
 
@@ -149,19 +170,21 @@ tfl/
 │   ├── config.h/cc                         # Configuration
 │   ├── tray.h/cc                           # System tray
 │   ├── notifications.h/cc                  # Desktop notifications
+│   ├── theme.h/cc                          # CSS theme injection
 │   ├── idle.h/cc                           # Idle/visibility override
 │   └── openh264.h/cc                       # Runtime OpenH264 downloader
 ├── data/
 │   ├── tfl.desktop                         # Desktop entry
 │   ├── tfl.svg                             # App icon
-│   └── dev.tfl.teams-for-linux.appdata.xml # AppStream metadata
+│   ├── dev.tfl.teams-for-linux.appdata.xml # AppStream metadata
+│   └── themes/                             # CSS themes (yaru-dark, catppuccin-mocha)
 ├── packaging/
-│   ├── download-cef.sh                     # CEF binary downloader (Spotify CDN)
+│   ├── download-cef.sh                     # CEF binary downloader (GitHub release)
 │   ├── build-cef-source.sh                 # CEF source build (H.264 + PipeWire)
 │   ├── build-local.sh                      # Local package builder (via act)
 │   └── PKGBUILD                            # Arch Linux package
 └── .github/workflows/
-    └── build.yml                           # CI/CD (deb/rpm/arch)
+    └── build.yml                           # CI/CD (deb/rpm/arch/binary)
 ```
 
 ## License

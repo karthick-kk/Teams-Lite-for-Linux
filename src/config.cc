@@ -8,6 +8,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -151,12 +152,15 @@ TflConfig load_config() {
 
 void save_window_state(const TflConfig& config, int x, int y, int w, int h) {
     std::string path = config.config_dir + "/window-state";
-    std::ofstream file(path);
+    std::string tmp = path + ".tmp";
+    std::ofstream file(tmp);
     if (!file.is_open()) return;
     file << "x = " << x << "\n"
          << "y = " << y << "\n"
          << "width = " << w << "\n"
          << "height = " << h << "\n";
+    file.close();
+    std::filesystem::rename(tmp, path);
 }
 
 static int g_lock_fd = -1;
@@ -194,10 +198,11 @@ void save_theme(const TflConfig& config, const std::string& theme) {
     std::string line;
     while (std::getline(stream, line)) {
         std::string trimmed = trim(line);
-        if (trimmed.find("theme") == 0 && trimmed.find('=') != std::string::npos) {
+        std::string key = trimmed.substr(0, trimmed.find('='));
+        if (key == "theme") {
             out << "theme = " << theme << "\n";
             found = true;
-        } else if (trimmed == "# theme = none") {
+        } else if (trimmed.rfind("# theme", 0) == 0) {
             out << "theme = " << theme << "\n";
             found = true;
         } else {
@@ -208,9 +213,12 @@ void save_theme(const TflConfig& config, const std::string& theme) {
         out << "\ntheme = " << theme << "\n";
     }
 
-    std::ofstream file(config_path);
+    std::string tmp = config_path + ".tmp";
+    std::ofstream file(tmp);
     if (file.is_open()) {
         file << out.str();
+        file.close();
+        std::filesystem::rename(tmp, config_path);
     }
 }
 
@@ -232,10 +240,11 @@ void save_vaapi(const TflConfig& config, bool enabled) {
     std::string line;
     while (std::getline(stream, line)) {
         std::string trimmed = trim(line);
-        if (trimmed.find("vaapi") == 0 && trimmed.find('=') != std::string::npos) {
+        std::string key = trimmed.substr(0, trimmed.find('='));
+        if (key == "vaapi") {
             out << "vaapi = " << (enabled ? "true" : "false") << "\n";
             found = true;
-        } else if (trimmed == "# vaapi = true") {
+        } else if (trimmed.rfind("# vaapi", 0) == 0) {
             out << "vaapi = " << (enabled ? "true" : "false") << "\n";
             found = true;
         } else {
@@ -246,9 +255,12 @@ void save_vaapi(const TflConfig& config, bool enabled) {
         out << "\nvaapi = " << (enabled ? "true" : "false") << "\n";
     }
 
-    std::ofstream file(config_path);
+    std::string tmp = config_path + ".tmp";
+    std::ofstream file(tmp);
     if (file.is_open()) {
         file << out.str();
+        file.close();
+        std::filesystem::rename(tmp, config_path);
     }
 }
 
@@ -270,10 +282,11 @@ void save_screen_share_audio(const TflConfig& config, bool enabled) {
     std::string line;
     while (std::getline(stream, line)) {
         std::string trimmed = trim(line);
-        if (trimmed.find("screen_share_audio") == 0 && trimmed.find('=') != std::string::npos) {
+        std::string key = trimmed.substr(0, trimmed.find('='));
+        if (key == "screen_share_audio") {
             out << "screen_share_audio = " << (enabled ? "true" : "false") << "\n";
             found = true;
-        } else if (trimmed == "# screen_share_audio = true") {
+        } else if (trimmed.rfind("# screen_share_audio", 0) == 0) {
             out << "screen_share_audio = " << (enabled ? "true" : "false") << "\n";
             found = true;
         } else {
@@ -284,8 +297,11 @@ void save_screen_share_audio(const TflConfig& config, bool enabled) {
         out << "\nscreen_share_audio = " << (enabled ? "true" : "false") << "\n";
     }
 
-    std::ofstream file(config_path);
+    std::string tmp = config_path + ".tmp";
+    std::ofstream file(tmp);
     if (file.is_open()) {
         file << out.str();
+        file.close();
+        std::filesystem::rename(tmp, config_path);
     }
 }

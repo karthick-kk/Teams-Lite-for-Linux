@@ -93,10 +93,10 @@ python3 "${BUILD_DIR}/code/automate-git.py" \
 
 # --- Find output ---
 echo "[6/7] Locating build output..."
-DISTRIB_DIR=$(find "${BUILD_DIR}/code/chromium/src/cef/binary_distrib" -maxdepth 1 -name "cef_binary_*_linux64_minimal" -type d | head -1)
+DISTRIB_DIR=$(find "${BUILD_DIR}/code/chromium/src/cef/binary_distrib" -maxdepth 1 -name "cef_binary_*_linux64_minimal" -type d -print -quit)
 
 if [ -z "$DISTRIB_DIR" ]; then
-    DISTRIB_DIR=$(find "${BUILD_DIR}/code/chromium/src/cef/binary_distrib" -maxdepth 1 -name "cef_binary_*_linux64" -type d | head -1)
+    DISTRIB_DIR=$(find "${BUILD_DIR}/code/chromium/src/cef/binary_distrib" -maxdepth 1 -name "cef_binary_*_linux64" -type d -print -quit)
 fi
 
 if [ -z "$DISTRIB_DIR" ]; then
@@ -121,6 +121,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_SANDBOX=OFF
 make -j${JOBS} libcef_dll_wrapper
 
 # Copy resources next to libcef.so (CEF resolves relative to its own location)
+mkdir -p /tmp/cef/Release
 cp /tmp/cef/Resources/icudtl.dat /tmp/cef/Release/
 cp /tmp/cef/Resources/chrome_100_percent.pak /tmp/cef/Release/
 cp /tmp/cef/Resources/chrome_200_percent.pak /tmp/cef/Release/

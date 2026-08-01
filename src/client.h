@@ -156,9 +156,7 @@ public:
 private:
     TflConfig config_;
     bool is_closing_ = false;
-    int last_badge_ = 0;
     std::list<CefRefPtr<CefBrowser>> browsers_;
-    CefRefPtr<CefFrame> teams_frame_;  // main Teams frame for JS injection
     CefRefPtr<CefMessageRouterBrowserSide> message_router_;
 
     IMPLEMENT_REFCOUNTING(TflClient);

@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
     CefString(&settings.log_file) = config.cache_dir + "/cef.log";
     settings.log_severity = LOGSEVERITY_WARNING;
     settings.persist_session_cookies = true;
-    settings.remote_debugging_port = 9222;
+    settings.remote_debugging_port = config.enable_dev_tools ? 9222 : 0;
     CefString(&settings.user_agent) = config.user_agent;
 
     // Memory optimizations: limit background renderer priority
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
         execv("/proc/self/exe", g_argv);
         // execv only returns on error
         perror("[tfl] execv failed");
-        return 1;
+        _exit(1);
     }
 
     fprintf(stderr, "[tfl] Shutdown complete\n");

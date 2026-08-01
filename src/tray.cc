@@ -171,6 +171,7 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
         app_indicator_set_icon_theme_path(g_indicator, theme_base.c_str());
     }
 
+    g_object_ref_sink(g_indicator);
     app_indicator_set_status(g_indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_title(g_indicator, "Teams Lite for Linux");
 
@@ -199,8 +200,9 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
         if (config.theme == "none" || config.theme.empty()) {
             gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(default_item), TRUE);
         }
-        g_signal_connect(default_item, "toggled", G_CALLBACK(on_theme_activate),
-                         const_cast<char*>(s_none.c_str()));
+        char* none_name = g_strdup("none");
+        g_signal_connect_data(default_item, "toggled", G_CALLBACK(on_theme_activate),
+            none_name, (GClosureNotify)g_free, (GConnectFlags)0);
         gtk_menu_shell_append(GTK_MENU_SHELL(themes_menu), default_item);
 
         // Separator in themes submenu
@@ -231,8 +233,9 @@ void tray_init(CefRefPtr<CefBrowser> browser, CefRefPtr<CefWindow> window,
                 gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(item), TRUE);
             }
 
-            g_signal_connect(item, "toggled", G_CALLBACK(on_theme_activate),
-                             const_cast<char*>(s_theme_names[i].c_str()));
+            char* name = g_strdup(s_theme_names[i].c_str());
+            g_signal_connect_data(item, "toggled", G_CALLBACK(on_theme_activate),
+                name, (GClosureNotify)g_free, (GConnectFlags)0);
             gtk_menu_shell_append(GTK_MENU_SHELL(themes_menu), item);
         }
 

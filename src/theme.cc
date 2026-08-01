@@ -30,6 +30,10 @@ static std::vector<std::string> get_theme_dirs() {
 
 std::string theme_find_path(const std::string& theme_name) {
     if (theme_name.empty() || theme_name == "none") return "";
+    if (theme_name.find('/') != std::string::npos ||
+        theme_name.find('\\') != std::string::npos ||
+        theme_name.find("..") != std::string::npos)
+        return "";
 
     std::string filename = theme_name + ".css";
     for (const auto& dir : get_theme_dirs()) {
@@ -126,32 +130,6 @@ static std::vector<std::pair<std::string, std::string>> parse_css_vars(const std
         pos = val_end + 1;
     }
     return vars;
-}
-
-// Extract non-variable CSS rules (e.g. scrollbar styles)
-static std::string extract_non_var_css(const std::string& css) {
-    std::string result;
-    size_t pos = 0;
-    while (pos < css.size()) {
-        // Find next rule block that doesn't start with :root
-        auto brace = css.find('{', pos);
-        if (brace == std::string::npos) break;
-
-        std::string selector = css.substr(pos, brace - pos);
-        // Find matching close brace
-        auto close = css.find('}', brace);
-        if (close == std::string::npos) break;
-
-        // Keep non-:root rules (scrollbar styles, etc.)
-        if (selector.find(":root") == std::string::npos) {
-            result += css.substr(pos, close - pos + 1) + "\n";
-        }
-
-        pos = close + 1;
-        // Skip whitespace
-        while (pos < css.size() && (css[pos] == '\n' || css[pos] == '\r' || css[pos] == ' ')) pos++;
-    }
-    return result;
 }
 
 // Helper to build the color map JS object string
@@ -271,7 +249,7 @@ std::string theme_get_inject_js(const std::string& css) {
         "  scanCount++;"
         "  scan();"
         "  if(scanCount<3)setTimeout(scheduleScan,1000);"
-        "  else setTimeout(scheduleScan,3000);"
+        "  else if(scanCount<30)setTimeout(scheduleScan,3000);"
         "}"
         "setTimeout(scheduleScan,1500);"
         // Part 3: scan CSSOM for :hover rules — run once after Teams has loaded

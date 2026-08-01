@@ -36,10 +36,15 @@ static void open_url_external(const std::string& url) {
     if (pid == 0) {
         // Child process — close inherited file descriptors and exec
         setsid();
+        int maxfd = static_cast<int>(sysconf(_SC_OPEN_MAX));
+        if (maxfd < 0) maxfd = 256;
+        for (int fd = 3; fd < maxfd; ++fd) close(fd);
         execlp("xdg-open", "xdg-open", url.c_str(), nullptr);
         _exit(1);  // exec failed
     }
-    // Parent: don't wait — let xdg-open run async
+    // Parent: reap child to avoid zombies
+    int status;
+    waitpid(pid, &status, WNOHANG);
 }
 
 // Escape string for use in JavaScript single-quoted string
@@ -56,24 +61,28 @@ static std::string escape_for_js_string(const std::string& s) {
     return escaped;
 }
 
+static bool domain_matches(const std::string& host, const std::string& domain) {
+    return host == domain || ends_with(host, "." + domain);
+}
+
 static bool is_teams_domain(const std::string& url) {
     std::string host = get_hostname(url);
-    return ends_with(host, "teams.cloud.microsoft") ||
-           ends_with(host, "teams.microsoft.com") ||
-           ends_with(host, "teams.live.com") ||
-           ends_with(host, "teams.cdn.office.net") ||
-           ends_with(host, ".office.com") ||
-           ends_with(host, "login.microsoftonline.com") ||
-           ends_with(host, "login.live.com") ||
-           ends_with(host, "login.microsoft.com") ||
-           ends_with(host, "microsoftonline.com") ||
-           ends_with(host, ".msftauth.net") ||
-           ends_with(host, ".msauth.net") ||
-           ends_with(host, ".microsoft.com") ||
-           ends_with(host, ".live.com") ||
-           ends_with(host, ".office365.com") ||
-           ends_with(host, ".sharepoint.com") ||
-           ends_with(host, ".onmicrosoft.com");
+    return domain_matches(host, "teams.cloud.microsoft") ||
+           domain_matches(host, "teams.microsoft.com") ||
+           domain_matches(host, "teams.live.com") ||
+           domain_matches(host, "teams.cdn.office.net") ||
+           domain_matches(host, ".office.com") ||
+           domain_matches(host, "login.microsoftonline.com") ||
+           domain_matches(host, "login.live.com") ||
+           domain_matches(host, "login.microsoft.com") ||
+           domain_matches(host, "microsoftonline.com") ||
+           domain_matches(host, ".msftauth.net") ||
+           domain_matches(host, ".msauth.net") ||
+           domain_matches(host, ".microsoft.com") ||
+           domain_matches(host, ".live.com") ||
+           domain_matches(host, ".office365.com") ||
+           domain_matches(host, ".sharepoint.com") ||
+           domain_matches(host, ".onmicrosoft.com");
 }
 
 // Handler for JS->C++ notification messages via cefQuery
@@ -97,8 +106,16 @@ public:
             auto pos = req.find(search);
             if (pos == std::string::npos) return "";
             pos += search.size();
-            auto end = req.find("\"", pos);
-            if (end == std::string::npos) return "";
+            size_t end = pos;
+            while (end < req.size()) {
+                if (req[end] == '\\' && end + 1 < req.size()) {
+                    end += 2;
+                    continue;
+                }
+                if (req[end] == '"') break;
+                ++end;
+            }
+            if (end >= req.size()) return "";
             std::string val = req.substr(pos, end - pos);
             // Unescape basic JSON escapes
             std::string result;
@@ -316,6 +333,15 @@ bool TflClient::OnBeforeDownload(CefRefPtr<CefBrowser> browser,
     }
     std::string path = downloads_dir + "/" + safe_name;
 
+    if (std::filesystem::exists(path)) {
+        auto stem = std::filesystem::path(safe_name).stem().string();
+        auto ext = std::filesystem::path(safe_name).extension().string();
+        int counter = 1;
+        do {
+            path = downloads_dir + "/" + stem + "_" + std::to_string(counter++) + ext;
+        } while (std::filesystem::exists(path));
+    }
+
     fprintf(stderr, "[tfl] Downloading: %s\n", path.c_str());
     callback->Continue(path, false);
     return true;
@@ -413,9 +439,6 @@ void TflClient::OnLoadEnd(CefRefPtr<CefBrowser> browser,
     std::string url = frame->GetURL().ToString();
     if (!is_teams_domain(url)) return;
 
-    // Track the main Teams frame for idle monitor JS injection
-    teams_frame_ = frame;
-
     // Inject visibility override to prevent "Away" status when window is unfocused
     frame->ExecuteJavaScript(idle_get_visibility_override_js(), url, 0);
 
@@ -476,8 +499,6 @@ void TflClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& ti
     tray_set_tooltip(tooltip);
 
     // Badge-based notifications disabled — rich notifications via JS override are now used
-    // (kept badge tracking for tray tooltip)
-    last_badge_ = badge;
 
     // Set window title for GNOME titlebar
     auto views = CefBrowserView::GetForBrowser(browser);
@@ -494,7 +515,7 @@ bool TflClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
                                CefRefPtr<CefFrame> frame,
                                CefRefPtr<CefRequest> request,
                                bool user_gesture,
-                               bool is_redirect) {
+                               [[maybe_unused]] bool is_redirect) {
     if (!frame->IsMain()) return false;
     message_router_->OnBeforeBrowse(browser, frame);
 
@@ -648,17 +669,17 @@ bool TflClient::OnPreKeyEvent(CefRefPtr<CefBrowser> browser,
         return true;
     }
 
-    // Ctrl+R — reload
-    if (event.windows_key_code == 'R' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) {
-        browser->Reload();
-        return true;
-    }
-
-    // Ctrl+Shift+R — reload ignoring cache
+    // Ctrl+Shift+R — reload ignoring cache (must come before Ctrl+R)
     if (event.windows_key_code == 'R' &&
         (event.modifiers & EVENTFLAG_CONTROL_DOWN) &&
         (event.modifiers & EVENTFLAG_SHIFT_DOWN)) {
         browser->ReloadIgnoreCache();
+        return true;
+    }
+
+    // Ctrl+R — reload
+    if (event.windows_key_code == 'R' && (event.modifiers & EVENTFLAG_CONTROL_DOWN)) {
+        browser->Reload();
         return true;
     }
 

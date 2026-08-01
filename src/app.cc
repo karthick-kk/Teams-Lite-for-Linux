@@ -18,7 +18,9 @@ void TflApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitch("in-process-gpu");
 
     // Custom user-agent
-    command_line->AppendSwitchWithValue("user-agent", config_.user_agent);
+    if (!config_.user_agent.empty()) {
+        command_line->AppendSwitchWithValue("user-agent", config_.user_agent);
+    }
 
     // Disable sandbox (we're not shipping chrome-sandbox suid)
     command_line->AppendSwitch("no-sandbox");

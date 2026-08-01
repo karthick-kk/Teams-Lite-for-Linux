@@ -46,18 +46,16 @@ void TflWindowDelegate::OnWindowCreated(CefRefPtr<CefWindow> window) {
 
 void TflWindowDelegate::OnWindowDestroyed(CefRefPtr<CefWindow> window) {
     tray_shutdown();
+    notifications_set_click_handler(nullptr);
     browser_view_ = nullptr;
     client_ = nullptr;
     fprintf(stderr, "[tfl] Window destroyed\n");
 }
 
 bool TflWindowDelegate::CanClose(CefRefPtr<CefWindow> window) {
-    // Save window state
-    CefRect bounds = window->GetBounds();
-    save_window_state(config_, bounds.x, bounds.y, bounds.width, bounds.height);
-
     if (tray_quit_requested()) {
-        tray_shutdown();
+        CefRect bounds = window->GetBounds();
+        save_window_state(config_, bounds.x, bounds.y, bounds.width, bounds.height);
         return true;
     }
 
@@ -67,6 +65,8 @@ bool TflWindowDelegate::CanClose(CefRefPtr<CefWindow> window) {
         return false;
     }
 
+    CefRect bounds = window->GetBounds();
+    save_window_state(config_, bounds.x, bounds.y, bounds.width, bounds.height);
     tray_shutdown();
     return true;
 }

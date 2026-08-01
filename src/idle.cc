@@ -14,7 +14,7 @@ static bool s_override_active = true;  // starts active (injected on page load)
 // Query GNOME Mutter IdleMonitor for system-level idle time via DBus
 int get_system_idle_seconds() {
     GDBusConnection* conn = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, nullptr);
-    if (!conn) return 0;
+    if (!conn) return -1;
 
     GError* error = nullptr;
     GVariant* result = g_dbus_connection_call_sync(
@@ -169,7 +169,7 @@ static gboolean idle_check_cb(gpointer) {
 
     int idle_sec = get_system_idle_seconds();
     bool locked = is_screen_locked();
-    bool should_be_active = (idle_sec < s_idle_timeout_sec) && !locked;
+    bool should_be_active = (idle_sec >= 0) && (idle_sec < s_idle_timeout_sec) && !locked;
 
     if (s_override_active && !should_be_active) {
         // User went idle or locked — pause the override
@@ -194,6 +194,11 @@ void idle_monitor_start(int idle_timeout_sec, IdleJsCallback js_callback) {
     if (idle_timeout_sec <= 0) {
         fprintf(stderr, "[tfl] Idle monitor disabled (idle_timeout = 0) — always Available\n");
         return;
+    }
+
+    if (s_timer_id > 0) {
+        g_source_remove(s_timer_id);
+        s_timer_id = 0;
     }
 
     // Poll every 15 seconds
